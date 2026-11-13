@@ -80,7 +80,7 @@ class Button:
         # Positions
         self.base_pos = (x, y)
         self.active_offset = active_offset
-        self.rect = self.image.get_rect(topleft=self.base_pos)
+        self.rect = self.image_normal.get_rect(topleft=self.base_pos)
 
         # Text
         self.text = text
@@ -92,24 +92,36 @@ class Button:
         self.is_hovered = False
         self.is_active = False
 
+    def press(self) -> None:
+        """Mark the button as pressed."""
+        self.is_active = True
+
+    def release(self) -> None:
+        """Mark the button as released."""
+        self.is_active = False
+
     def handle_event(self, event: Any) -> bool:
-        """ Manage interactions and states with the button """
+        """
+        Process a mouse click event.
 
-        if event.type == pygame.MOUSEMOTION:
-            self.is_hovered = self.rect.collidepoint(event.pos)
+        Parameters
+        ----------
+        event : pygame.event.Event
+            Event to process.
 
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+        Returns
+        -------
+        bool
+            True if the button was clicked (pressed and released while
+            the cursor is over it), False otherwise.
+        """
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                self.is_active = True
-                self._update_visual_state()
-                return False
-
+                self.press()
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            if self.rect.collidepoint(event.pos):
-                self.is_active = False
-                self._update_visual_state()
-                return True
-
+            was_active = self.is_active
+            self.release()
+            return was_active and self.rect.collidepoint(event.pos)
         return False
 
     def _update_visual_state(self) -> None:
@@ -129,10 +141,22 @@ class Button:
         self.is_hovered = self.rect.collidepoint(mouse_pos)
 
     def draw(self, surface: Any) -> None:
-        """ Create the button in the screen """
-        surface.blit(self.image, self.rect)
+        """
+        Draw the button and its text.
+
+        Parameters
+        ----------
+        surface : pygame.Surface
+            Surface to draw on.
+        """
+        image = self.image_active if self.is_active else self.image_normal
+        x, y = self.base_pos
+        if self.is_active:
+            x += self.active_offset[0]
+            y += self.active_offset[1]
+        surface.blit(image, (x, y))
 
         color = self.hover_color if self.is_hovered else self.text_color
-        text_button = self.font.render(self.text, True, color)
-        text_rect = text_button.get_rect(center=self.rect.center)
-        surface.blit(text_button, text_rect)
+        label = self.font.render(self.text, True, color)
+        center = image.get_rect(topleft=(x, y)).center
+        surface.blit(label, label.get_rect(center=center))
