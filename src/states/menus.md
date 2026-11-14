@@ -33,3 +33,7 @@ Dev Menu:
 - [ ] Vitory Screen:
     - [ ] Display final score and contratulatory message.
     - [ ] Prompts the prayer na...
+
+    Controls:
+    Up: W
+    left: A

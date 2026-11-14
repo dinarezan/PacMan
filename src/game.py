@@ -94,6 +94,10 @@ class Game:
             self.draw()
             self.clock.tick(60)
 
+    def update(self) -> None:
+        """Per-frame logic."""
+        self._menu.update()
+
     def draw(self) -> None:
         """Clear the screen, draw the active state and present the frame.
 
