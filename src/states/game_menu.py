@@ -7,8 +7,7 @@ import pygame
 
 from .menu import Menu
 from states.instructions import Instructions
-ENTER_KEYS = (pygame.K_RETURN, pygame.K_KP_ENTER)
-# K_BACKSPACE
+
 
 
 class GameMenu:

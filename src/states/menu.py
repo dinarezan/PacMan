@@ -4,6 +4,10 @@ import pygame
 from .button import Button  # adjust to where your Button class lives
 
 
+ENTER_KEYS = (pygame.K_RETURN, pygame.K_BACKSPACE)
+#  K_KP_ENTER
+
+
 class Menu:
     """
     Vertical menu of Buttons, usable with keyboard and mouse.

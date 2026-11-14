@@ -205,7 +205,11 @@ class Instructions:
             True if the event was consumed, False otherwise.
         """
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_UP, pygame.K_DOWN):
+            if event.key == pygame.K_UP:
+                self.scroll_by(-100)
+                return True
+            if event.key == pygame.K_DOWN:
+                self.scroll_by(100)
                 return True
             if event.key == pygame.K_PAGEUP:
                 self.scroll_by(-self.PAGE_STEP)
@@ -213,6 +217,7 @@ class Instructions:
             if event.key == pygame.K_PAGEDOWN:
                 self.scroll_by(self.PAGE_STEP)
                 return True
+            
             if event.key == pygame.K_HOME:
                 self.offset = 0
                 return True
