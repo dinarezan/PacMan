@@ -19,10 +19,10 @@ CONTROLS = [
 # (image file, name, description)  # TODO Add/edit new elements here
 ELEMENTS = [
     ("pacman.png", "Pac-Man",
-     "That's you! Guide him through the maze with the arrow keys."),
+     "The main one! Guide him through the maze with the arrow keys."),
     ("pac-dots.png", "Pac-Dots",
      "Eat every dot in the maze to clear the level."),
-    ("power-pellets.png", "Power Pellets",
+    ("power-pellets.png", "Dina's food",
      "Eat one and the ghosts turn blue and run away for a short time."),
     ("ghost.png", "Ghosts",
      "Avoid them! If a ghost catches you, you lose a life."),
@@ -91,14 +91,15 @@ class Instructions:
         self.max_offset = max(0, self.content.get_height()
                               - self.viewport.height)
 
-    # -- content -------------------------------------------------------
+    # ---- content -----------------------------------------------------
     def _load_image(self, name: str) -> pygame.Surface:
         """Load an image, or return a placeholder if it can't be read."""
         try:
-            image = pygame.image.load(str(self.assets_dir / "icons" / name))
+            image = pygame.image.load(str(self.assets_dir / 'icons' / name))
             return pygame.transform.smoothscale(
                 image.convert_alpha(), self.IMAGE_SIZE)
         except (pygame.error, FileNotFoundError):
+            print("Failure to load icons images in Instructions")
             placeholder = pygame.Surface(self.IMAGE_SIZE, pygame.SRCALPHA)
             pygame.draw.rect(placeholder, (90, 90, 90),
                              placeholder.get_rect(), width=2)
@@ -183,7 +184,7 @@ class Instructions:
             content.blit(surface, (x, block_y))
         return content
 
-    # -- scrolling -----------------------------------------------------
+    # ---- scrolling ---------------------------------------------------
     def reset(self) -> None:
         """Scroll back to the top."""
         self.offset = 0
@@ -237,7 +238,7 @@ class Instructions:
         if keys[pygame.K_DOWN]:
             self.scroll_by(self.SCROLL_SPEED)
 
-    # -- drawing -------------------------------------------------------
+    # ---- drawing -----------------------------------------------------
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the visible slice of the content and the scrollbar."""
         area = pygame.Rect(0, self.offset, self.content.get_width(),

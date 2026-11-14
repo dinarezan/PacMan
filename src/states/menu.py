@@ -125,7 +125,7 @@ class Menu:
         for text, action in zip(items, actions):
             self.add_button(text, action)
 
-    # ------------------------------------------------------------------
+    # ---- Im lazy ---------------------------------------------------------
     def add_button(self, text: str, action: Callable[[], None]) -> Button:
         """
         Append a button below the last one and link its action.

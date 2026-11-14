@@ -50,7 +50,7 @@ class GameMenu:
     # ? I Have not idea how to do this ^ 😢
     BUTTON_SIZE = (220, 56)
     FOOTER_MARGIN = 24
-    ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+    ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
     TITLE_COLOR = (0, 220, 0)
     SCORE_COLOR = (120, 120, 120)
 
