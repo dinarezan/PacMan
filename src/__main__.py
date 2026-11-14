@@ -13,7 +13,6 @@ if __name__ == "__main__":
             level = game.levels.pop(0)
             map = Map(size=(level.width, level.height), seed=level.seed, ghosts=level.ghosts,
                     pacgum=level.pacgum, max_time=level.max_time)
-            # print("level:\n", map.maze)
 
     except FileNotFoundError as e:
         print("FileNotFoundError:", e)
