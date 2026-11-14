@@ -1,4 +1,4 @@
-from .entities import Map, load_config
+from entities import Map, load_config
 import json
 from pydantic import ValidationError
 from game import Game
@@ -12,8 +12,8 @@ if __name__ == "__main__":
         config = load_config(CONFIG_PATH)
 
         game = Game(config)
-
         game.run()
+        #Game(config={}).run()
 
 
         #while game.levels:

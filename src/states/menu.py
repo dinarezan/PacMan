@@ -1,7 +1,7 @@
 from typing import Any, Callable, Iterator
 import pygame
 
-from button import Button  # adjust to where your Button class lives
+from .button import Button  # adjust to where your Button class lives
 
 
 class Menu:
@@ -14,7 +14,7 @@ class Menu:
     mouse moves over a button.
 
     Parameters
-    ----------
+    ------------------------------------------
     items : list of str
         Texts shown on each button.
     actions : list of callable
@@ -44,7 +44,7 @@ class Menu:
         If True, apply ``str.title()`` to every text. Default is ``True``.
 
     Attributes
-    ----------
+    ------------------------------------------
     x : int
         X coordinate of the first button.
     y : int
@@ -71,12 +71,12 @@ class Menu:
         Index of the currently selected button.
 
     Raises
-    ------
+    ------------------------------------------
     ValueError
         If `items` and `actions` do not have the same length.
 
     Examples
-    --------
+    ------------------------------------------
     >>> menu = Menu(["Start", "Exit"], [start, exit_app], x=130, y=120,
     ...             image_normal=normal, image_active=active)
     >>> for event in pygame.event.get():
@@ -206,7 +206,7 @@ class Menu:
             button = self.buttons[self.selected]
             if button.is_active:
                 button.release()
-                button.action()
+                button.action()     # ! Kill Mypy bitte
                 return True
             return False
 
@@ -270,47 +270,3 @@ class Menu:
         """Highlight only the selected button."""
         for index, button in enumerate(self.buttons):
             button.is_hovered = index == self.selected
-
-
-# ----------------------------------------------------------------------
-# Usage examples (inside your controller class)
-# ----------------------------------------------------------------------
-#
-# def _make_main_menu(self) -> Menu:
-#     return Menu(
-#         items=["Maps", "Start", "Exit"],
-#         actions=[lambda: self.change_menu('maps'),
-#                  self.start_simulation,
-#                  self.exit_app],
-#         x=self.view.game_width + 46, y=480,
-#         image_normal=self.view.normal_button,
-#         image_active=self.view.active_button,
-#         font=self.view.font,
-#     )
-#
-# def _make_difficult_menu(self) -> Menu:
-#     items = ["easy", "medium", "hard", "challenger", "back"]
-#     # item=item freezes the current value in each lambda
-#     actions = [lambda item=item: self.show_maps(item)
-#                for item in items[:-1]]
-#     actions.append(lambda: self.change_menu('main'))
-#     return Menu(items, actions, x=self.view.game_width + 46, y=480,
-#                 image_normal=self.view.normal_button,
-#                 image_active=self.view.active_button,
-#                 font=self.view.font)
-#
-# def generate_menu(self, option: str, items: list[str]) -> Menu:
-#     files = sorted(items)
-#     names = [f.removesuffix(".txt").replace('_', ' ') for f in files]
-#     actions = [lambda f=f: self.parse_map(option, f) for f in files]
-#     names.append("Back")
-#     actions.append(lambda: self.change_menu('maps'))
-#     return Menu(names, actions, x=self.view.game_width + 46, y=480,
-#                 image_normal=self.view.normal_button,
-#                 image_active=self.view.active_button,
-#                 font=self.view.font)
-#
-# Main loop:
-#   for event in pygame.event.get():
-#       self.menu.handle_event(event)
-#   self.menu.draw(self.view.screen)
