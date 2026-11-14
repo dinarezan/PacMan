@@ -11,6 +11,7 @@ CONTROLS = [
     ("Arrow keys / W A S D", "Move Pac-Man up, down, left and right."),
     ("Enter", "Select the highlighted menu option."),
     ("Up / Down", "Move through the menu options or scroll a screen."),
+    ("A / S", "Move through the menu options or scroll a screen."),
     ("Backspace", "Go back to the previous menu."),
     ("P or Esc", "Pause the game."),
     ("M", "Mute or unmute the sound."),
@@ -206,10 +207,10 @@ class Instructions:
             True if the event was consumed, False otherwise.
         """
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
+            if event.key in (pygame.K_UP, pygame.K_w):
                 self.scroll_by(-100)
                 return True
-            if event.key == pygame.K_DOWN:
+            if event.key in (pygame.K_DOWN, pygame.K_s):
                 self.scroll_by(100)
                 return True
             if event.key == pygame.K_PAGEUP:
@@ -218,7 +219,6 @@ class Instructions:
             if event.key == pygame.K_PAGEDOWN:
                 self.scroll_by(self.PAGE_STEP)
                 return True
-            
             if event.key == pygame.K_HOME:
                 self.offset = 0
                 return True

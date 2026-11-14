@@ -195,10 +195,10 @@ class Menu:
             return False
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
+            if event.key in (pygame.K_UP, pygame.K_w):
                 self.select_previous()
                 return True
-            if event.key == pygame.K_DOWN:
+            if event.key in (pygame.K_DOWN, pygame.K_s):
                 self.select_next()
                 return True
             if event.key in ENTER_KEYS:
