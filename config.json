@@ -1,0 +1,41 @@
+{
+	"levels": [
+		{
+			"width": 10,
+			"height": 10,
+			"pacgum": 20,
+			"ghosts": [
+				{
+					"name": "blinky",
+					"position": [0, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [9, 9]
+				},
+				{
+					"name": "blinky",
+					"position": [9, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [0, 9]
+				}
+			],
+			"max_time": 120,
+			"seed": 42
+		},
+		{
+			"width": 20,
+			"height": 20,
+			"pacgum": 42,
+			"ghosts": [],
+			"max_time": 150,
+			"seed": null
+		}
+	],
+	"lives": 3,
+	"points_per_pacgum": 10,
+	"points_per_super_pacgum": 50,
+	"points_per_ghost": 200
+}

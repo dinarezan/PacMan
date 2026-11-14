@@ -1,3 +1,5 @@
 .venv
 *.lock
 *pycache*
+__pycache__
+

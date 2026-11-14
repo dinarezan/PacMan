@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "flake8>=7.5.0",
-    "mazegenerator",
     "mypy>=2.4.1",
+    "numpy>=2.4.6",
     "opencv-python>=5.0.0.93",
     "pydantic>=2.14.3",
     "pygame>=2.6.1",
@@ -18,3 +18,4 @@ package-mode = false
 
 [tool.uv.sources]
 mazegenerator = { path = "mazegenerator-00001/mazegenerator-2.1.0-py3-none-any.whl" }
+
