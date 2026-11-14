@@ -38,7 +38,7 @@ class GhostFactory:
         "blinky": Blinky
     }
 
-    def create(self, ghosts: list[dict[str, str | tuple[int, int]]]) -> list[Ghost]:
+    def create(self, ghosts: list[dict[str, tuple[int, int]]]) -> list[Ghost]:
         ghosts = []
         for g in ghosts:
             name = g.get("name")

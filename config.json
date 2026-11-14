@@ -1,5 +1,4 @@
 {
-	"highscore_filename": "highscores.txt",
 	"levels": [
 		{
 			"width": 10,
@@ -12,15 +11,15 @@
 				},
 				{
 					"name": "blinky",
-					"position": [10, 10]
+					"position": [9, 9]
 				},
 				{
 					"name": "blinky",
-					"position": [10, 0]
+					"position": [9, 0]
 				},
 				{
 					"name": "blinky",
-					"position": [0, 10]
+					"position": [0, 9]
 				}
 			],
 			"max_time": 120,
