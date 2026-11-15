@@ -121,15 +121,10 @@ def change_color(color: tuple[int, int, int],
     # Manipulate each channel
     h = (h + hue / 360.0) % 1.0
     s = max(0.0, min(1.0, s * saturation))
-    v = max(0.0, min(1.0, s * luminosity))
+    v = max(0.0, min(1.0, v * luminosity))
     # Reconvert to RGB channels
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
-
-    return (
-        int(r * 255),
-        int(g * 255),
-        int(b * 255),
-    )
+    return (int(r * 255), int(g * 255), int(b * 255))
 
 
 def generate_color_drone(base_image: Surface, hue_value: int,
