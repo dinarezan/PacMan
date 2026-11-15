@@ -551,21 +551,46 @@ class RenderMap:
 
     def _shadow(self, width: int, strength: float) -> pygame.Surface:
         """
-        Return a soft ellipse shadow (cached).
+        Return a soft ellipse shadow with a transparancy gradient (cached).
 
-        `strength` in ``0..1`` makes it wider and darker; it is rounded
-        to tenths so only a few variants are ever created.
+        `strength` in ``0..1`` makes it wider and darker.
         """
         step = int(max(0.0, min(1.0, strength)) * 10)
         key = (width, step)
         shadow = self._shadows.get(key)
-        if shadow is None:
-            w = max(2, round(width * (0.5 + 0.05 * step)))
-            h = max(1, round(w * 0.35))
-            shadow = pygame.Surface((w, h), pygame.SRCALPHA)
-            pygame.draw.ellipse(shadow, (0, 0, 0, 40 + 7 * step),
-                                shadow.get_rect())
-            self._shadows[key] = shadow
+
+        # Is in cache
+        if shadow is not None:
+            return shadow
+
+        w = max(2, round(width * (0.5 + 0.05 * step)))
+        h = max(1, round(w * 0.35))
+        shadow = pygame.Surface((w, h), pygame.SRCALPHA)
+
+        max_alpha = 40 + 7 * step
+        layers = 12    # ! Check for optimization
+
+        # Draw from the outside toward the center.
+        for i in range(layers):
+            progress = i / (layers - 1)
+
+            # Smaller ellipse as we move toward the center. # * Fake effect.
+            ellipse_w = max(1, round(w * (1.0 - progress * 0.15)))
+            ellipse_h = max(1, round(h * (1.0 - progress * 0.15)))
+
+            rect = pygame.Rect(0, 0, ellipse_w, ellipse_h)
+            rect.center = (w // 2, h // 2)
+
+            # Quadratic curve gives a smoother falloff.
+            alpha = round(max_alpha * (progress ** 2) / layers * 2)
+
+            pygame.draw.ellipse(
+                shadow,
+                (0, 0, 0, alpha),
+                rect,
+            )
+
+        self._shadows[key] = shadow
         return shadow
 
     def _draw_shadow(self, screen: pygame.Surface, position: Any,
