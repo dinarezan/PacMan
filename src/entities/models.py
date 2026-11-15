@@ -21,7 +21,7 @@ class Level(BaseModel):
     height: int = Field(ge=5, le=100)
     pacgum: int = Field(ge=1)
     max_time: int = Field(ge=5)
-    seed: int | None
+    seed: int
     ghosts: list[BaseGhost]
 
     @model_validator(mode='after')
