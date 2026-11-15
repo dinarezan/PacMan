@@ -20,3 +20,4 @@ Cache:
 - [Key map](https://www.pygame.org/docs/ref/key.html)       - Pygame keymap.
 - [cache structure](https://stackoverflow.com/questions/17615447/pre-loading-images-pygame)         - Managing cache images for pygame.
 - [Read all files](https://realpython.com/get-all-files-in-directory-python/)          - How to read all files by using python.
+- [Optimisation for Pygame](https://bugnet.io/blog/pygame-performance-tips-for-indie-developers)        - Tips to improve the performance.

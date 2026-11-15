@@ -9,9 +9,8 @@ from .menu import Menu
 from states.instructions import Instructions
 
 
-
 class GameMenu:
-    """
+    """e
     Menu state: main, configuration, highest-score and instructions
     screens.
 
@@ -50,13 +49,14 @@ class GameMenu:
     # ? I Have not idea how to do this ^ 😢
     BUTTON_SIZE = (220, 56)
     FOOTER_MARGIN = 24
-    ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+    #ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
     TITLE_COLOR = (0, 220, 0)
     SCORE_COLOR = (120, 120, 120)
 
     def __init__(self, size: tuple[int, int], font: Any, title_font: Any,
                  functions: dict[str, Callable[..., None]],
-                 scores: list[str] | None = None) -> None:
+                 scores: list[str] | None = None,
+                 path: Path = Path(".")) -> None:
         self.WIDTH, self.HEIGHT = size
         self.functions = functions
         self.font = font
@@ -66,9 +66,10 @@ class GameMenu:
         self.normal, self.active = self._make_images()
         self.normal, self.active = self._make_images()
         self.footer_y = self.HEIGHT - self.BUTTON_SIZE[1] - self.FOOTER_MARGIN
+        self.assets_dir = path
         viewport = pygame.Rect(20, 100, self.WIDTH - 40,
                                self.footer_y - 12 - 100)
-        self.instructions = Instructions(viewport, font, self.ASSETS_DIR)
+        self.instructions = Instructions(viewport, font, self.assets_dir)
 
         self.menus: dict[str, tuple[str, Callable[[], Menu]]] = {
             "main": ("Main menu", self._make_main_menu),

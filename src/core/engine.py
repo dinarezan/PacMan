@@ -6,6 +6,7 @@ from entities import Map
 from states.game_menu import GameMenu
 from graphics.asset_manager import AssetManager
 from map.render_map import RenderMap
+from pathlib import Path
 
 # TODO Read screen size
 
@@ -39,15 +40,18 @@ class Engine:
         self.title_font = pygame.font.Font(None, 48)
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE)
         self.clock = pygame.time.Clock()
+        self.speed = 1000.0
         self.config = config
         self.running = False
         self.option: int | None = None
+        self.renderer: RenderMap | None = None
 
     # -- Init stuff ----------------------------------------------------
     def _pre_init(self) -> None:
         """Load starting resources."""
         pygame.display.set_caption('Pacman')
-        self.assets = AssetManager("../../assets")
+        ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+        self.assets = AssetManager(ASSETS_DIR)
         functions = {
             "start": self.start,
             "exit": self.exit_app,
@@ -59,6 +63,7 @@ class Engine:
             font=self.font,
             title_font=self.title_font,
             functions=functions,
+            path=ASSETS_DIR,
         )
 
     def run(self) -> None:
@@ -72,7 +77,7 @@ class Engine:
 
     def _init(self) -> None:
         """Load graphics, and assets"""
-        self.assets.load_group("maps")
+        #self.assets.load_group("maps")
 
     def start(self) -> None:
         """Start the game."""
@@ -85,8 +90,9 @@ class Engine:
             pacgum=level.pacgum,
             max_time=level.max_time)
         print("level:\n", map.maze)
-        #rendered_level = RenderMap(map, self.assets, self.SCREEN_SIZE)
-
+        self.renderer = RenderMap(map, self.assets, self.SCREEN_SIZE)
+        self.renderer.load_map()
+        #self.renderer.start_reveal(1.5)
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
@@ -110,10 +116,18 @@ class Engine:
     # ! -- MAIN LOOP --------------------------------------------------
     def _update(self) -> None:
         """Main loop."""
+        last_time = pygame.time.get_ticks()
         while self.running:
             self.event_loop()
             self.draw()
             self.clock.tick(60)
+            current_time = pygame.time.get_ticks()
+            dt = (current_time - last_time) / self.speed
+            last_time = current_time
+
+            if self.renderer:
+                self.renderer.update(dt)            # dt = clock.get_time() / 1000
+                self.renderer.draw(self.screen)
 
     def update(self) -> None:
         """Per-frame logic."""

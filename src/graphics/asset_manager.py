@@ -20,21 +20,19 @@ import pygame
 # 6. Use @functools.lru_cache decorator maybe -> Check it.
 
 
-#pygame.init()
-#screen = pygame.display.set_mode((1280, 720))
+""" # * --------------- EXAMPLE -------------------
+    assets = AssetManager("assets")
 
-## Initialize and preload
-#assets = AssetManager()
-#assets.preload_folder("assets/sprites")
-#assets.preload_folder("assets/audio")
+    assets.load_group("menu")                          # assets/menu/
+    assets.load_group("map_classic", "maps/classic")   # one map style
+    assets.load_group("enemies")
 
-## Inside a game entity
-#class Player(pygame.sprite.Sprite):
-#    def __init__(self, assets):
-#        super().__init__()
-#        # Instant retrieval from memory
-#        self.image = assets.get_image("assets/sprites/hero.png", scale=(64, 64))
-#        self.jump_sfx = assets.get_sound("assets/audio/jump.wav")
+    # Switching map style frees the old one:
+    assets.unload_group("map_classic")
+    assets.load_group("map_neon", "maps/neon")
+
+    ghost = assets.get_image("enemies/ghost", (40, 40))
+"""
 
 log = logging.getLogger(__name__)
 
