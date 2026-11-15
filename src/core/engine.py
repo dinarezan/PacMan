@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import pygame
+from entities import Map
 from states.game_menu import GameMenu
+from graphics.asset_manager import AssetManager
+from map.render_map import RenderMap
 
 # TODO Read screen size
 
@@ -26,7 +29,8 @@ class Engine:
         Value chosen in the configuration menu, if any.
     """
 
-    SCREEN_SIZE = (480, 660)
+    SCREEN_SIZE = (1480, 1660)
+    # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
 
     def __init__(self, config):
@@ -43,6 +47,7 @@ class Engine:
     def _pre_init(self) -> None:
         """Load starting resources."""
         pygame.display.set_caption('Pacman')
+        self.assets = AssetManager("../../assets")
         functions = {
             "start": self.start,
             "exit": self.exit_app,
@@ -66,12 +71,22 @@ class Engine:
         self._finish()
 
     def _init(self) -> None:
-        """Load graphics."""
-        pass
+        """Load graphics, and assets"""
+        self.assets.load_group("maps")
 
     def start(self) -> None:
         """Start the game."""
         print("Running the game")
+        level = self.config.levels.pop(0)       # ? LEVEL SHOULD HANDLE LEVEL STYLE
+        map = Map(
+            size=(level.width, level.height),
+            seed=level.seed,
+            ghosts=level.ghosts,
+            pacgum=level.pacgum,
+            max_time=level.max_time)
+        print("level:\n", map.maze)
+        #rendered_level = RenderMap(map, self.assets, self.SCREEN_SIZE)
+
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
