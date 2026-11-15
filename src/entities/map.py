@@ -11,7 +11,7 @@ class Map(MazeGenerator):
         super().__init__(size, seed)
         self.pacman: PacMan = self._position_pacman(size)
         self.ghosts: list[Ghost] = GhostFactory().create([g.model_dump() for g in ghosts])
-        self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum)
+        self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum, self.pacman.position)
         self.max_time: int = max_time
 
     def _position_pacman(self, size: tuple[int, int]) -> PacMan:
