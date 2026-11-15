@@ -8,4 +8,4 @@ class RenderMap:
         self.tileset = tileset
         self.size = size
 
-
+        
