@@ -23,10 +23,70 @@ class RenderMap:
     5. Add ghosts to the map.
     """
 
-    def __init__(self, map, assets, size: tuple[int, int]):
-        self.map = map
+    MAP_FOLDER = "maps"
+    SPRITE_FOLDER = "sprites"
+    BACKGROUND = (0, 0, 0)
+
+    PACMAN_SPRITE = "pacman"
+    GHOST_SPRITE = "ghost"
+    FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
+    KIND_SPRITES = {
+        "dot": "pac-dots",
+        "power": "donut",
+        "fruit": "cherry",
+        "power-up": "coffee",
+    }
+
+    #    "dot": "pac-dots",
+    #    "power": "power-pellets",
+    #    "fruit": "fruit",
+    #    "power-up": "power-up",
+    # Sprite size relative to a tile (collectibles are smaller).
+    SPRITE_SCALE = {
+        "pac-dots": 0.4,
+        "power-pellets": 0.7,
+        "fruit": 0.7,
+        "power-up": 0.7,
+    }
+
+    def __init__(self, game_map: Any, assets: Any, size: tuple[int, int],
+                 origin: tuple[int, int] = (0, 0)) -> None:
+        maze = game_map.maze
+        self._validate(maze)
+        self.map = game_map
         self.assets = assets
-        self.size = size
+        self.rows = len(maze)
+        self.cols = len(maze[0])
+
+        self.tile = max(1, min(size[0] // self.cols, size[1] // self.rows))
+        width, height = self.cols * self.tile, self.rows * self.tile
+        self.origin = (origin[0] + (size[0] - width) // 2,
+                       origin[1] + (size[1] - height) // 2)
+
+        self._tiles_color: dict[int, pygame.Surface] = {}
+        self._tiles_gray: dict[int, pygame.Surface] = {}
+        self._bg_color: pygame.Surface | None = None
+        self._bg_gray: pygame.Surface | None = None
+        self._sprites: dict[tuple[str, float], pygame.Surface] = {}
+
+        self.revealing = False
+        self._reveal_surface: pygame.Surface | None = None
+        self._reveal_time = 0.0
+        self._reveal_duration = 1.0
+        self._reveal_diagonal = -1
+
+    @staticmethod
+    def _validate(maze: Any) -> None:
+        if not maze or not maze[0]:
+            raise ValueError("The maze is empty")
+        width = len(maze[0])
+        for row in maze:
+            if len(row) != width:
+                raise ValueError("All maze rows must have the same length")
+            for value in row:
+                if not 0 <= value <= 15:
+                    raise ValueError(
+                        f"Tile value {value} is outside 0..15")
 
     def load_map(self) -> None:
         """
@@ -61,7 +121,7 @@ class RenderMap:
     def draw(self, screen: pygame.Surface) -> None:
         """
         Draw the map and everything on it.
- 
+
         Parameters
         ----------
         screen : pygame.Surface
@@ -69,7 +129,7 @@ class RenderMap:
         """
         if self._bg_color is None:
             self.load_map()
- 
+
         if self.revealing:
             screen.blit(self._reveal_surface, self.origin)
             self._draw_pacman(screen)
@@ -79,14 +139,107 @@ class RenderMap:
             self._draw_pacman(screen)
             self._draw_ghosts(screen)
 
-    def add_tiles_map(self) -> None:
-        """ Load the tiles in the screen 
-        
-        Use images from assets/map/
-        each image have a name from 0 to 15
-        Use each image for each value in map.maze
+    # ----  Intro animation  -------------------------------------------
+    def start_reveal(self, duration: float = 1.5) -> None:
         """
-        print("level:\n", map.maze)
+        Start the grayscale-to-color intro animation.
+
+        Parameters
+        ----------
+        duration : float, optional
+            Seconds the color takes to sweep from the top-left corner to
+            the bottom-right corner. Default is ``1.5``.
+        """
+        if self._bg_gray is None:
+            self.load_map()
+        self._reveal_surface = self._bg_gray.copy()
+        self._reveal_time = 0.0
+        self._reveal_duration = max(duration, 1e-6)
+        self._reveal_diagonal = -1
+        self.revealing = True
+
+    def finish_reveal(self) -> None:
+        """Skip the intro animation."""
+        self.revealing = False
+        self._reveal_surface = None
+
+    def update(self, dt: float) -> None:
+        """
+        Advance the intro animation.
+
+        Parameters
+        ----------
+        dt : float
+            Seconds since the previous frame.
+        """
+        if not self.revealing:
+            return
+        self._reveal_time += dt
+        progress = min(1.0, self._reveal_time / self._reveal_duration)
+        diagonals = self.rows + self.cols - 1
+        target = int(progress * diagonals) - 1
+
+        # Restore color one anti-diagonal at a time (row + col == d).
+        for d in range(self._reveal_diagonal + 1, target + 1):
+            for row in range(max(0, d - self.cols + 1),
+                             min(self.rows, d + 1)):
+                col = d - row
+                rect = pygame.Rect(col * self.tile, row * self.tile,
+                                   self.tile, self.tile)
+                self._reveal_surface.fill(self.BACKGROUND, rect)
+                self._reveal_surface.blit(
+                    self._tiles_color[self.map.maze[row][col]], rect)
+        self._reveal_diagonal = max(self._reveal_diagonal, target)
+
+        if progress >= 1.0:
+            self.finish_reveal()
+
+    # ----  Drawing  ---------------------------------------------------
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the map and everything on it.
+
+        Parameters
+        ----------
+        screen : pygame.Surface
+            Surface to draw on.
+        """
+        if self._bg_color is None:
+            self.load_map()
+
+        if self.revealing:
+            screen.blit(self._reveal_surface, self.origin)
+            self._draw_pacman(screen)
+        else:
+            screen.blit(self._bg_color, self.origin)
+            self._draw_pacgums(screen)
+            self._draw_pacman(screen)
+            self._draw_ghosts(screen)
+
+    def _draw_pacman(self, screen: pygame.Surface) -> None:
+        """Draw Pac-Man."""
+        pacman = getattr(self.map, "pacman", None)
+        if pacman is not None:
+            self._blit(screen, self._sprite(self.PACMAN_SPRITE),
+                       getattr(pacman, "position", pacman))
+
+    def _draw_pacgums(self, screen: pygame.Surface) -> None:
+        """Draw dots, power pellets, fruit and power-ups."""
+        for item in getattr(self.map, "pacgums", ()):
+            kind = getattr(item, "kind", "dot")
+            name = self.KIND_SPRITES.get(kind, kind)
+            self._blit(screen, self._sprite(name),
+                       getattr(item, "position", item))
+
+    def _draw_ghosts(self, screen: pygame.Surface) -> None:
+        """Draw the ghosts (blue when frightened)."""
+        for ghost in getattr(self.map, "ghosts", ()):
+            if getattr(ghost, "frightened", False):
+                sprite = self._sprite(self.FRIGHTENED_SPRITE)
+            else:
+                sprite = self._sprite(self.GHOST_SPRITE,
+                                      getattr(ghost, "hue", 0.0))
+            self._blit(screen, sprite, getattr(ghost, "position", ghost))
 
     def _sprite(self, name: str, hue: float = 0.0) -> pygame.Surface:
         """Return a sprite scaled for this map (cached; optional tint)."""
@@ -100,7 +253,7 @@ class RenderMap:
                 sprite = tint_surface(sprite, hue=hue)
             self._sprites[key] = sprite
         return sprite
- 
+
     def _blit(self, screen: pygame.Surface, image: pygame.Surface,
               position: tuple[float, float]) -> None:
         """Draw `image` centered on the cell at `position` (col, row)."""
@@ -109,6 +262,3 @@ class RenderMap:
                   round(self.origin[1] + (y + 0.5) * self.tile))
         screen.blit(image, image.get_rect(center=center))
  
-
-    
-

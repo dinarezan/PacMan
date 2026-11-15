@@ -1,8 +1,7 @@
-from entities import Map, load_config
+from entities import load_config
 import json
 from pydantic import ValidationError
 from core.engine import Engine
-
 
 CONFIG_PATH = "config.json"
 
@@ -16,8 +15,8 @@ if __name__ == "__main__":
         #Game(config={}).run()
 
 
-        #while game.levels:
-        #    level = game.levels.pop(0)
+        #while config.levels:
+        #    level = config.levels.pop(0)
         #    map = Map(size=(level.width, level.height), seed=level.seed, ghosts=level.ghosts,
         #            pacgum=level.pacgum, max_time=level.max_time)
             # print("level:\n", map.maze)
