@@ -116,6 +116,7 @@ class RenderMap:
     GHOST_START_SCALE = 0.2
     SHADOW_WIDTH = 0.8        # shadow width relative to the sprite
     SHADOW_OFFSET = 0.3       # shadow drop below center, times sprite height
+    SHADOW_LAYERS = 16
 
     def __init__(self, game_map: Any, assets: Any, size: tuple[int, int],
                  origin: tuple[int, int] = (0, 0),
@@ -455,6 +456,11 @@ class RenderMap:
             if self._colored is not None:
                 screen.blit(self._colored, self.origin)
 
+        pacman = getattr(self.map, "pacman", ())
+        self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                          size=(50, 70))
+
         drop = self.DROP_TILES * self.tile
 
         dots = []
@@ -488,16 +494,22 @@ class RenderMap:
         for sprite, position, height in ghosts:
             self._blit(screen, sprite, position, lift=height)
 
+    # ! ADD here new shadow on other elements
     def _draw_shadows(self, screen: pygame.Surface) -> None:
         """Draw the resting shadow of every pacgum and ghost."""
         for item in getattr(self.map, "pacgums", ()):
             kind = getattr(item, "kind", "dot")
             sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
             self._draw_shadow(screen, getattr(item, "position", item),
-                              sprite)
+                              sprite, strength=0.7, size=(50, 50))
         for ghost in getattr(self.map, "ghosts", ()):
             self._draw_shadow(screen, getattr(ghost, "position", ghost),
-                              self._ghost_sprite(ghost))
+                              self._ghost_sprite(ghost), size=(100, 70))
+
+        pacman = getattr(self.map, "pacman", ())
+        self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                          size=(50, 70))
 
     def _draw_pacman(self, screen: pygame.Surface) -> None:
         """Draw Pac-Man."""
@@ -568,7 +580,7 @@ class RenderMap:
         shadow = pygame.Surface((w, h), pygame.SRCALPHA)
 
         max_alpha = 40 + 7 * step
-        layers = 12    # ! Check for optimization
+        layers = self.SHADOW_LAYERS
 
         # Draw from the outside toward the center.
         for i in range(layers, 0, -1):
@@ -596,9 +608,13 @@ class RenderMap:
         return shadow
 
     def _draw_shadow(self, screen: pygame.Surface, position: Any,
-                     sprite: pygame.Surface, strength: float = 1.0) -> None:
+                     sprite: pygame.Surface, strength: float = 1.0,
+                     size: tuple[int, int] | None = None) -> None:
         """Draw the ground shadow under the cell at `position`."""
-        width, height = sprite.get_size()
+        if size:
+            width, height = size[0], size[1]
+        else:
+            width, height = sprite.get_size()
         shadow = self._shadow(round(width * self.SHADOW_WIDTH), strength)
         x, y = position
         center = (round(self.origin[0] + (x + 0.5) * self.tile),
