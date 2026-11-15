@@ -77,6 +77,12 @@ class Engine:
         """Store the value chosen in the configuration menu."""
         self.option = value
         print(f"Option set to {value}")
+        """
+        Difficult?
+        Speed?
+        Volumen?
+        Cheat mode?
+        """
 
     def _play_theme(self) -> None:
         """Play the theme music."""
