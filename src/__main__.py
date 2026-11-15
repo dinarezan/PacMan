@@ -1,7 +1,7 @@
 from entities import Map, load_config
 import json
 from pydantic import ValidationError
-from game import Game
+from core.engine import Engine
 
 
 CONFIG_PATH = "config.json"
@@ -11,8 +11,8 @@ if __name__ == "__main__":
     try:
         config = load_config(CONFIG_PATH)
 
-        game = Game(config)
-        game.run()
+        engine = Engine(config)
+        engine.run()
         #Game(config={}).run()
 
 
