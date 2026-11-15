@@ -14,13 +14,62 @@ from graphics.sprite_utils import change_color, get_tinted_image, tint_surface, 
 
 
 class RenderMap:
-    """ Render the map on the screen
+    """
+    Render the map on the screen.
 
-    1. Remove color from tiles -> Remove color using change_color().
-    2. Draw tiles and pacman from the corner top-left to the corner bottom-right.
-    3. Restore color in tiles from the corner top-left to the corner bottom-right.
-    4. Add pacgums into the map.
-    5. Add ghosts to the map.
+    The maze tiles never change, so they are composed once into a single
+    surface and blitted with one call per frame. Collectibles, Pac-Man and
+    the ghosts are drawn on top every frame, at their current positions.
+
+    Draw order: tiles, pacgums, Pac-Man, ghosts.
+
+    An optional intro animation (`start_reveal`) first shows the maze and
+    Pac-Man in grayscale, then restores the color from the top-left
+    corner to the bottom-right corner; pacgums and ghosts appear when it
+    ends.
+
+    Parameters
+    ----------
+    game_map : object
+        Provides ``maze``: a tuple of tuples of ints in ``0..15``,
+        indexed ``maze[row][column]``. It may also provide (all
+        optional, read every frame):
+
+        - ``pacman``: has ``position``.
+        - ``pacgums``: iterable of items with ``position`` and an
+          optional ``kind`` (``"dot"``, ``"power"``, ``"fruit"``,
+          ``"power-up"``, or any file name in ``assets/sprites``).
+        - ``ghosts``: iterable of items with ``position`` and optional
+          ``frightened`` (bool) and ``hue`` (degrees, to color-shift the
+          ghost sprite).
+
+        A ``position`` is ``(column, row)`` in cell units and may be a
+        float for smooth movement. A plain ``(column, row)`` tuple is
+        accepted in place of an object.
+    assets : AssetManager
+        Provides ``get_image(name, scale, group=...)``. Tiles are read
+        from ``map/<value>`` and sprites from ``sprites/<name>``.
+    size : tuple of int
+        Pixel area ``(width, height)`` available for the map. The tile
+        size is the largest that fits and the map is centered in it.
+    origin : tuple of int, optional
+        Top-left corner of that area on the screen. Default ``(0, 0)``.
+
+    Attributes
+    ----------
+    rows, cols : int
+        Maze dimensions in tiles.
+    tile : int
+        Tile size in pixels.
+    origin : tuple of int
+        Top-left pixel of the (centered) maze on the screen.
+    revealing : bool
+        True while the intro animation is running.
+
+    Raises
+    ------
+    ValueError
+        If the maze is empty, ragged, or has values outside ``0..15``.
     """
 
     MAP_FOLDER = "maps"
@@ -87,7 +136,10 @@ class RenderMap:
                 if not 0 <= value <= 15:
                     raise ValueError(
                         f"Tile value {value} is outside 0..15")
-
+ 
+    # ------------------------------------------------------------------
+    # Loading
+    # ------------------------------------------------------------------
     def load_map(self) -> None:
         """
         Prepare the static maze surfaces (colored and grayscale).
@@ -118,28 +170,9 @@ class RenderMap:
                              (col * self.tile, row * self.tile))
         return surface
 
-    def draw(self, screen: pygame.Surface) -> None:
-        """
-        Draw the map and everything on it.
-
-        Parameters
-        ----------
-        screen : pygame.Surface
-            Surface to draw on.
-        """
-        if self._bg_color is None:
-            self.load_map()
-
-        if self.revealing:
-            screen.blit(self._reveal_surface, self.origin)
-            self._draw_pacman(screen)
-        else:
-            screen.blit(self._bg_color, self.origin)
-            self._draw_pacgums(screen)
-            self._draw_pacman(screen)
-            self._draw_ghosts(screen)
-
-    # ----  Intro animation  -------------------------------------------
+    # ------------------------------------------------------------------
+    # Intro animation
+    # ------------------------------------------------------------------
     def start_reveal(self, duration: float = 1.5) -> None:
         """
         Start the grayscale-to-color intro animation.
@@ -194,7 +227,9 @@ class RenderMap:
         if progress >= 1.0:
             self.finish_reveal()
 
-    # ----  Drawing  ---------------------------------------------------
+    # ------------------------------------------------------------------
+    # Drawing
+    # ------------------------------------------------------------------
     def draw(self, screen: pygame.Surface) -> None:
         """
         Draw the map and everything on it.
@@ -212,7 +247,7 @@ class RenderMap:
             self._draw_pacman(screen)
         else:
             screen.blit(self._bg_color, self.origin)
-            self._draw_pacgums(screen)
+            #self._draw_pacgums(screen)
             self._draw_pacman(screen)
             self._draw_ghosts(screen)
 
@@ -261,4 +296,3 @@ class RenderMap:
         center = (round(self.origin[0] + (x + 0.5) * self.tile),
                   round(self.origin[1] + (y + 0.5) * self.tile))
         screen.blit(image, image.get_rect(center=center))
- 

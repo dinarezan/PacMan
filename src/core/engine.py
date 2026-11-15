@@ -43,6 +43,7 @@ class Engine:
         self.speed = 1000.0
         self.config = config
         self.running = False
+        self.pause = True
         self.option: int | None = None
         self.renderer: RenderMap | None = None
 
@@ -82,6 +83,7 @@ class Engine:
     def start(self) -> None:
         """Start the game."""
         print("Running the game")
+        self.pause = False
         level = self.config.levels.pop(0)       # ? LEVEL SHOULD HANDLE LEVEL STYLE
         map = Map(
             size=(level.width, level.height),
@@ -92,7 +94,7 @@ class Engine:
         print("level:\n", map.maze)
         self.renderer = RenderMap(map, self.assets, self.SCREEN_SIZE)
         self.renderer.load_map()
-        #self.renderer.start_reveal(1.5)
+        self.renderer.start_reveal(1.5)
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
@@ -140,7 +142,8 @@ class Engine:
         (here ``GameMenu``) is responsible for drawing its own content.
         """
         self.screen.fill(self.BACKGROUND)
-        self._menu.draw(self.screen)
+        if self.pause:
+            self._menu.draw(self.screen)
         pygame.display.flip()
 
     def event_loop(self) -> None:
