@@ -76,7 +76,7 @@ class RenderMap:
     MAP_FOLDER = "maps"
     SPRITE_FOLDER = "sprites"
     BACKGROUND = (0, 0, 0)
-    BG_IMAGE = "map/bg"
+    BG_IMAGE = "maps/bg"
 
     PACMAN_SPRITE = "pacman"
     GHOST_SPRITE = "ghost"

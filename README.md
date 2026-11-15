@@ -21,3 +21,5 @@ Cache:
 - [cache structure](https://stackoverflow.com/questions/17615447/pre-loading-images-pygame)         - Managing cache images for pygame.
 - [Read all files](https://realpython.com/get-all-files-in-directory-python/)          - How to read all files by using python.
 - [Optimisation for Pygame](https://bugnet.io/blog/pygame-performance-tips-for-indie-developers)        - Tips to improve the performance.
+- [Animation effect](https://www.freecodecamp.org/news/pygame-tutorial-build-a-bouncing-game/)      - Animation and bouncing effect in pygame.
+- [Lighting System](https://dev.to/osmankahraman/building-a-2d-lighting-system-in-pygame-what-broke-what-worked-and-what-i-learned-2o5g)        - Build a lighting system with PyGame.
