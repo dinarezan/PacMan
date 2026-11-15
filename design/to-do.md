@@ -172,3 +172,10 @@
 - [ ] Implementation
 - [ ] General sofrware architecture
 - [ ] Project mANAGEMENT.
+
+
+
+Other things:
+
+Move load_config to another folder.
+Move maps outside of entities too.

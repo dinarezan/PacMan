@@ -460,6 +460,9 @@ class RenderMap:
         self._draw_shadow(screen, getattr(pacman, "position", pacman),
                           self._sprite(self.PACMAN_SPRITE), strength=1.0,
                           size=(50, 70))
+        self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                          size=(50, 70))
 
         drop = self.DROP_TILES * self.tile
 
@@ -471,7 +474,7 @@ class RenderMap:
             height = self._bounce(elapsed, drop)
             sprite = self._sprite(name)
             self._draw_shadow(screen, position, sprite,
-                              1.0 - min(height / drop, 1.0))
+                              1.0 - min(height / drop, 0.7))
             dots.append((sprite, position, height))
 
         ghosts = []
@@ -501,12 +504,15 @@ class RenderMap:
             kind = getattr(item, "kind", "dot")
             sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
             self._draw_shadow(screen, getattr(item, "position", item),
-                              sprite, strength=0.7, size=(50, 50))
+                              sprite, strength=0.7)
         for ghost in getattr(self.map, "ghosts", ()):
             self._draw_shadow(screen, getattr(ghost, "position", ghost),
-                              self._ghost_sprite(ghost), size=(100, 70))
+                              self._ghost_sprite(ghost))
 
         pacman = getattr(self.map, "pacman", ())
+        self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                          size=(50, 70))
         self._draw_shadow(screen, getattr(pacman, "position", pacman),
                           self._sprite(self.PACMAN_SPRITE), strength=1.0,
                           size=(50, 70))
