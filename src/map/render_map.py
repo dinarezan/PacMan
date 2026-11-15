@@ -571,18 +571,20 @@ class RenderMap:
         layers = 12    # ! Check for optimization
 
         # Draw from the outside toward the center.
-        for i in range(layers):
-            progress = i / (layers - 1)
+        for i in range(layers, 0, -1):
+            progress = i / layers
 
             # Smaller ellipse as we move toward the center. # * Fake effect.
-            ellipse_w = max(1, round(w * (1.0 - progress * 0.15)))
-            ellipse_h = max(1, round(h * (1.0 - progress * 0.15)))
-
-            rect = pygame.Rect(0, 0, ellipse_w, ellipse_h)
+            rect = pygame.Rect(
+                0,
+                0,
+                round(w * progress),
+                round(h * progress),
+            )
             rect.center = (w // 2, h // 2)
 
             # Quadratic curve gives a smoother falloff.
-            alpha = round(max_alpha * (progress ** 2) / layers * 2)
+            alpha = round(max_alpha * (1.0 - progress) ** 2)
 
             pygame.draw.ellipse(
                 shadow,
