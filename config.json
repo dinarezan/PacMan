@@ -3,7 +3,57 @@
 		{
 			"width": 20,
 			"height": 20,
-			"pacgum": 20,
+			"pacgum": 42,
+			"ghosts": [
+				{
+					"name": "blinky",
+					"position": [0, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [18, 18]
+				},
+				{
+					"name": "blinky",
+					"position": [18, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [0, 18]
+				}
+			],
+			"max_time": 120,
+			"seed": 12
+		},
+		{
+			"width": 20,
+			"height": 20,
+			"pacgum": 42,
+			"ghosts": [
+				{
+					"name": "blinky",
+					"position": [0, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [18, 18]
+				},
+				{
+					"name": "blinky",
+					"position": [18, 0]
+				},
+				{
+					"name": "blinky",
+					"position": [0, 18]
+				}
+			],
+			"max_time": 120,
+			"seed": 420
+		},
+		{
+			"width": 20,
+			"height": 20,
+			"pacgum": 42,
 			"ghosts": [
 				{
 					"name": "blinky",
