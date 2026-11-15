@@ -1,12 +1,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import pygame
+
 from entities import Map
 from states.game_menu import GameMenu
 from graphics.asset_manager import AssetManager
 from map.render_map import RenderMap
-from pathlib import Path
+
 
 # TODO Read screen size
 
@@ -26,11 +28,15 @@ class Engine:
         Window size ``(width, height)``.
     running : bool
         True while the main loop is active.
+    pause : bool
+        True while the menu is shown instead of the game.
+    speed : float
+        Game-time multiplier applied to the frame time (1.0 is normal).
     option : int or None
         Value chosen in the configuration menu, if any.
     """
 
-    SCREEN_SIZE = (1480, 1660)
+    SCREEN_SIZE = (1880, 1260)
     # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
 
@@ -40,10 +46,11 @@ class Engine:
         self.title_font = pygame.font.Font(None, 48)
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE)
         self.clock = pygame.time.Clock()
-        self.speed = 1000.0
+        self.speed = 1.0
         self.config = config
         self.running = False
         self.pause = True
+        self.game_active = False
         self.option: int | None = None
         self.renderer: RenderMap | None = None
 
@@ -77,35 +84,35 @@ class Engine:
         self._finish()
 
     def _init(self) -> None:
-        """Load graphics, and assets"""
-        #self.assets.load_group("maps")
+        """Load graphics, and assets."""
+        # self.assets.load_group("maps")
 
     def start(self) -> None:
         """Start the game."""
+        if not self.config.levels:
+            print("No more levels")
+            return
         print("Running the game")
-        self.pause = False
-        level = self.config.levels.pop(0)       # ? LEVEL SHOULD HANDLE LEVEL STYLE
-        map = Map(
+        level = self.config.levels.pop(0)   # ? LEVEL SHOULD HANDLE LEVEL STYLE
+        game_map = Map(
             size=(level.width, level.height),
             seed=level.seed,
             ghosts=level.ghosts,
             pacgum=level.pacgum,
             max_time=level.max_time)
-        print("level:\n", map.maze)
-        self.renderer = RenderMap(map, self.assets, self.SCREEN_SIZE)
+        print("level:\n", game_map.maze)
+        self.renderer = RenderMap(game_map, self.assets, self.SCREEN_SIZE)
         self.renderer.load_map()
         self.renderer.start_reveal(1.5)
+        self.pause = False
+        self.game_active = True
+        self._menu.change_menu("pause")
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
         self.option = value
         print(f"Option set to {value}")
-        """
-        Difficult?
-        Speed?
-        Volumen?
-        Cheat mode?
-        """
+        # Difficult? Speed? Volumen? Cheat mode?
 
     def _play_theme(self) -> None:
         """Play the theme music."""
@@ -117,42 +124,59 @@ class Engine:
 
     # ! -- MAIN LOOP --------------------------------------------------
     def _update(self) -> None:
-        """Main loop."""
-        last_time = pygame.time.get_ticks()
+        """Main loop: events, logic, drawing (in this order)."""
         while self.running:
+            # tick() caps the frame rate and returns the milliseconds
+            # since the previous frame.
+            dt = self.clock.tick(60) / 1000.0 * self.speed
             self.event_loop()
+            self.update(dt)
             self.draw()
-            self.clock.tick(60)
-            current_time = pygame.time.get_ticks()
-            dt = (current_time - last_time) / self.speed
-            last_time = current_time
 
-            if self.renderer:
-                self.renderer.update(dt)            # dt = clock.get_time() / 1000
-                self.renderer.draw(self.screen)
+    def update(self, dt: float) -> None:
+        """Per-frame logic.
 
-    def update(self) -> None:
-        """Per-frame logic."""
-        self._menu.update()
+        Parameters
+        ----------
+        dt : float
+            Seconds since the previous frame.
+        """
+        if self.pause:
+            self._menu.update()
+        elif self.renderer:
+            self.renderer.update(dt)
 
     def draw(self) -> None:
         """Clear the screen, draw the active state and present the frame.
 
-        The Game owns the window, so it clears and flips; each state
-        (here ``GameMenu``) is responsible for drawing its own content.
+        Everything must be drawn *before* ``flip()``: the screen is
+        cleared at the start of every frame, so anything drawn after the
+        flip is never shown.
         """
         self.screen.fill(self.BACKGROUND)
         if self.pause:
             self._menu.draw(self.screen)
+        elif self.renderer:
+            self.renderer.draw(self.screen)
         pygame.display.flip()
 
     def event_loop(self) -> None:
-        """Dispatch pygame events."""
+        """Dispatch pygame events to the active state."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            else:
+            elif self.pause:
                 self._menu.handle_event(event)
+            #elif (event.type == pygame.KEYDOWN
+            #        and event.key == pygame.K_ESCAPE):
+            #    self.pause = True       # back to the menu
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.pause = True   # back to the menu
+                if event.key == pygame.K_SPACE and self.pause:
+                    self.pause = False   # back to the menu
+                if event.key == pygame.K_SPACE and not self.pause:
+                    self.pause = True
 
     def _finish(self) -> None:
         """Release resources."""

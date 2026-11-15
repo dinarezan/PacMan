@@ -76,6 +76,7 @@ class GameMenu:
             "instructions": ("Instructions", self._make_instructions_menu),
             "config": ("Configuration", self._make_config_menu),
             "score": ("Highest Score", self._make_score_menu),
+            "pause": ("Pause menu", self._make_pause_menu),
         }
         self.change_menu("main")
 
@@ -138,6 +139,16 @@ class GameMenu:
             ["Return"],
             [lambda: self.change_menu("main")],
             y=self.footer_y,
+            title_case=False,
+        )
+
+    def _make_pause_menu(self) -> Menu:
+        """Build the pause menu (a Return button in the footer)."""
+        return self._new_menu(
+            ["Return", "Exit"],
+            [lambda: self.set_option(5),
+             lambda: self.change_menu("main")],
+            y=320,
             title_case=False,
         )
 
