@@ -115,7 +115,7 @@ class RenderMap:
     GHOST_STAGGER = 0.2       # delay between ghosts
     GHOST_START_SCALE = 0.2
     SHADOW_WIDTH = 0.8        # shadow width relative to the sprite
-    SHADOW_OFFSET = 0.4       # shadow drop below center, times sprite height
+    SHADOW_OFFSET = 0.3       # shadow drop below center, times sprite height
 
     def __init__(self, game_map: Any, assets: Any, size: tuple[int, int],
                  origin: tuple[int, int] = (0, 0),
@@ -139,6 +139,7 @@ class RenderMap:
         self._bg_screen: pygame.Surface | None = None   # bg tiles only
         self._static: pygame.Surface | None = None      # bg + maze
         self._sprites: dict[tuple[str, float], pygame.Surface] = {}
+        self._shadows: dict[tuple[int, int], pygame.Surface] = {}
 
         self.revealing = False
         self._time = 0.0
@@ -438,6 +439,7 @@ class RenderMap:
             return
 
         screen.blit(self._static, (0, 0))
+        self._draw_shadows(screen)
         self._draw_pacgums(screen)
         self._draw_pacman(screen)
         self._draw_ghosts(screen)
@@ -462,6 +464,8 @@ class RenderMap:
                 continue
             height = self._bounce(elapsed, drop)
             sprite = self._sprite(name)
+            self._draw_shadow(screen, position, sprite,
+                              1.0 - min(height / drop, 1.0))
             dots.append((sprite, position, height))
 
         ghosts = []
@@ -474,6 +478,7 @@ class RenderMap:
             scale = (self.GHOST_START_SCALE
                      + (1.0 - self.GHOST_START_SCALE) * u)
             sprite = self._scaled(self._ghost_sprite(ghost), scale)
+            self._draw_shadow(screen, position, sprite, u * u)
             ghosts.append((sprite, position, height))
 
         for sprite, position, height in dots:
@@ -482,6 +487,17 @@ class RenderMap:
             self._draw_pacman(screen)
         for sprite, position, height in ghosts:
             self._blit(screen, sprite, position, lift=height)
+
+    def _draw_shadows(self, screen: pygame.Surface) -> None:
+        """Draw the resting shadow of every pacgum and ghost."""
+        for item in getattr(self.map, "pacgums", ()):
+            kind = getattr(item, "kind", "dot")
+            sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
+            self._draw_shadow(screen, getattr(item, "position", item),
+                              sprite)
+        for ghost in getattr(self.map, "ghosts", ()):
+            self._draw_shadow(screen, getattr(ghost, "position", ghost),
+                              self._ghost_sprite(ghost))
 
     def _draw_pacman(self, screen: pygame.Surface) -> None:
         """Draw Pac-Man."""
@@ -532,6 +548,36 @@ class RenderMap:
         return pygame.transform.smoothscale(
             sprite, (max(1, round(width * scale)),
                      max(1, round(height * scale))))
+
+    def _shadow(self, width: int, strength: float) -> pygame.Surface:
+        """
+        Return a soft ellipse shadow (cached).
+
+        `strength` in ``0..1`` makes it wider and darker; it is rounded
+        to tenths so only a few variants are ever created.
+        """
+        step = int(max(0.0, min(1.0, strength)) * 10)
+        key = (width, step)
+        shadow = self._shadows.get(key)
+        if shadow is None:
+            w = max(2, round(width * (0.5 + 0.05 * step)))
+            h = max(1, round(w * 0.35))
+            shadow = pygame.Surface((w, h), pygame.SRCALPHA)
+            pygame.draw.ellipse(shadow, (0, 0, 0, 40 + 7 * step),
+                                shadow.get_rect())
+            self._shadows[key] = shadow
+        return shadow
+
+    def _draw_shadow(self, screen: pygame.Surface, position: Any,
+                     sprite: pygame.Surface, strength: float = 1.0) -> None:
+        """Draw the ground shadow under the cell at `position`."""
+        width, height = sprite.get_size()
+        shadow = self._shadow(round(width * self.SHADOW_WIDTH), strength)
+        x, y = position
+        center = (round(self.origin[0] + (x + 0.5) * self.tile),
+                  round(self.origin[1] + (y + 0.5) * self.tile
+                        + height * self.SHADOW_OFFSET))
+        screen.blit(shadow, shadow.get_rect(center=center))
 
     def _blit(self, screen: pygame.Surface, image: pygame.Surface,
               position: Any, lift: float = 0.0) -> None:
