@@ -3,7 +3,8 @@ import pygame
 import colorsys
 import random
 from typing import Any
-from graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
+from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
+from src.entities.map import Map
 
 #class Map(MazeGenerator):
 #    def __init__(self, size: tuple[int, int], pacgum: int, seed: int, ghosts: list[BaseGhost], max_time: int):
@@ -118,7 +119,7 @@ class RenderMap:
     SHADOW_OFFSET = 0.3       # shadow drop below center, times sprite height
     SHADOW_LAYERS = 16
 
-    def __init__(self, game_map: Any, assets: Any, size: tuple[int, int],
+    def __init__(self, game_map: Map, assets: Any, size: tuple[int, int],
                  origin: tuple[int, int] = (0, 0),
                  screen_size: tuple[int, int] | None = None) -> None:
         maze = game_map.maze
@@ -364,6 +365,9 @@ class RenderMap:
             self._update_color(self._time - self._draw_time)
         if self._time >= self._t_end:
             self.finish_reveal()
+        # for ghost in getattr(self.map, "ghosts", ()):
+        #     self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
+        #             self._ghost_sprite(ghost))
 
     def _update_gray(self) -> None:
         """Fade in the gray tiles along anti-diagonals (row + col = d)."""
@@ -424,7 +428,7 @@ class RenderMap:
             self._colored = colored
 
     # ----  Drawing  ---------------------------------------------------
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(self, screen: pygame.Surface, dt: float) -> None:
         """
         Draw the map and everything on it.
 
@@ -444,6 +448,13 @@ class RenderMap:
         self._draw_pacgums(screen)
         self._draw_pacman(screen)
         self._draw_ghosts(screen)
+        for ghost in self.map.ghosts:
+            pacman = getattr(self.map, "pacman", ())
+            pac_pos = getattr(pacman, "position", pacman)
+
+            ghost.update_position(dt, pac_pos, self.map.maze)
+
+
 
     def _draw_intro(self, screen: pygame.Surface) -> None:
         """Draw one frame of the intro animation."""
@@ -536,7 +547,7 @@ class RenderMap:
         """Draw the ghosts (blue when frightened)."""
         for ghost in getattr(self.map, "ghosts", ()):
             self._blit(screen, self._ghost_sprite(ghost),
-                       getattr(ghost, "position", ghost))
+                       getattr(ghost, "map_pos", ghost))
 
     # -- sprite helpers ------------------------------------------------
     def _ghost_sprite(self, ghost: Any) -> pygame.Surface:

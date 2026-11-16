@@ -8,7 +8,7 @@ import numpy as np
 
 class Map(MazeGenerator):
     def __init__(self, size: tuple[int, int], pacgum: int, seed: int, ghosts: list[BaseGhost], max_time: int):
-        super().__init__(size, seed)
+        super().__init__(size=size, seed=seed, perfect=False)
         self.pacman: PacMan = self._position_pacman(size)
         self.ghosts: list[Ghost] = GhostFactory().create([g.model_dump() for g in ghosts])
         self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum, self.pacman.position)

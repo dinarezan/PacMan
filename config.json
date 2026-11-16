@@ -1,9 +1,9 @@
 {
 	"levels": [
 		{
-			"width": 20,
-			"height": 20,
-			"pacgum": 42,
+			"width": 6,
+			"height": 6,
+			"pacgum": 12,
 			"ghosts": [
 				{
 					"name": "blinky",
@@ -11,15 +11,15 @@
 				},
 				{
 					"name": "blinky",
-					"position": [18, 18]
+					"position": [5, 5]
 				},
 				{
 					"name": "blinky",
-					"position": [18, 0]
+					"position": [5, 0]
 				},
 				{
 					"name": "blinky",
-					"position": [0, 18]
+					"position": [0, 5]
 				}
 			],
 			"max_time": 120,

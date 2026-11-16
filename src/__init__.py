@@ -1,3 +1,3 @@
-from .entities import Map
+from .entities import Map, load_config
 
-__all__ = ["Map"]
+__all__ = ["Map", "load_config"]

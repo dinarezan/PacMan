@@ -54,6 +54,8 @@ class Ghost(ABC):
 
             if current == target:
                 valid_paths.append(path)
+                if len(valid_paths) >= 10:
+                    break
                 continue
 
             neighbours = get_neighbours(current, maze)
@@ -62,7 +64,6 @@ class Ghost(ABC):
                     new_path = list(path)
                     new_path.append(neighbour)
                     visited.append(new_path)
-        print(f"{len(valid_paths)} valid paths found")
         return valid_paths.pop(0)
 
     def update_position(self, dt: float, target: tuple[int, int], maze: list[list[int]]) -> None:

@@ -6,7 +6,7 @@ from pathlib import Path
 import pygame
 
 from .menu import Menu
-from states.instructions import Instructions
+from src.states.instructions import Instructions
 
 
 class GameMenu:

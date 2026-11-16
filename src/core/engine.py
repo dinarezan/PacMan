@@ -4,10 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 import pygame
 
-from entities import Map
-from states.game_menu import GameMenu
-from graphics.asset_manager import AssetManager
-from map.render_map import RenderMap
+from src.entities import Map
+from src.states.game_menu import GameMenu
+from src.graphics.asset_manager import AssetManager
+from src.map.render_map import RenderMap
 
 
 # TODO Read screen size
@@ -100,7 +100,7 @@ class Engine:
             ghosts=level.ghosts,
             pacgum=level.pacgum,
             max_time=level.max_time)
-        print("level:\n", game_map.maze)
+        # print("level:\n", game_map.maze)
         self.renderer = RenderMap(game_map, self.assets, self.SCREEN_SIZE)
         self.renderer.load_map()
         self.renderer.start_reveal(1.5)
@@ -131,7 +131,7 @@ class Engine:
             dt = self.clock.tick(60) / 1000.0 * self.speed
             self.event_loop()
             self.update(dt)
-            self.draw()
+            self.draw(dt)
 
     def update(self, dt: float) -> None:
         """Per-frame logic.
@@ -146,7 +146,7 @@ class Engine:
         elif self.renderer:
             self.renderer.update(dt)
 
-    def draw(self) -> None:
+    def draw(self, dt: float) -> None:
         """Clear the screen, draw the active state and present the frame.
 
         Everything must be drawn *before* ``flip()``: the screen is
@@ -157,7 +157,7 @@ class Engine:
         if self.pause:
             self._menu.draw(self.screen)
         elif self.renderer:
-            self.renderer.draw(self.screen)
+            self.renderer.draw(self.screen, dt)
         pygame.display.flip()
 
     def event_loop(self) -> None:

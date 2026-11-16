@@ -1,7 +1,7 @@
-from entities import load_config
+from .entities import load_config
 import json
 from pydantic import ValidationError
-from core.engine import Engine
+from .core.engine import Engine
 
 CONFIG_PATH = "config.json"
 
