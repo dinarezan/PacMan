@@ -1,47 +1,47 @@
 import random
 from math import hypot
 
+DIRS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 
 class PacMan:
     def __init__(self, pos: tuple[float, float]):
         self.position: tuple[float, float] = pos
-        #self.map_pos: tuple[float, float] = tuple(map(float, pos))
-        self.direction: int = 0
+        self.cell: tuple[int, int] = (int(pos[0]), int(pos[1]))
+        self.direction: int | None = None
+        self._next: tuple[int, int] | None = None
         self.speed: float = 1.0
         self.size: float = 1.0
         self.state: str  # * For future states.
 
-    def update_position(self, dt: float) -> None:
-        """Run pacman"""
-        remaining = self.speed * dt  # distance (in cells) to travel this frame
-
-        if self.direction == 0:
-            nx = self.position[0]
-            ny = self.position[1] - 20
-        elif self.direction == 1:
-            nx = self.position[0] + 20
-            ny = self.position[1]
-        elif self.direction == 2:
-            nx = self.position[0]
-            ny = self.position[1] + 20
-        elif self.direction == 3:
-            nx = self.position[0] - 20
-            ny = self.position[1]
-        else:
-            nx = self.position[0] 
-            ny = self.position[1]
-
-        dx, dy = nx - self.position[0], ny - self.position[1]
-        dist = hypot(dx, dy)
-        f = remaining / dist
-
-        if self.valid_movement:
-            pass
-        self.position = (self.position[0] + dx * f, self.position[1] + dy * f)
-        #print("New position: ", self.map_pos)
-
-    def valid_movement(self, pos: tuple[float, float]) -> bool:
+    def _start_move(self, maze) -> bool:
+        if self.direction is None:
+            return False
+        x, y = self.cell
+        if (maze[y][x] >> self.direction) & 1:
+            return False
+        dx, dy = DIRS[self.direction]
+        nx, ny = x + dx, y + dy
+        self._next = (nx, ny)
         return True
+
+    def update_position(self, dt: float, maze: list[list[int]]) -> None:
+        """Run pacman"""
+        remaining = self.speed * dt # distance (in cells) to travel this frame
+        while remaining > 10e-9:
+            if self._next is None and not self._start_move(maze):
+                return
+            nx, ny = self._next
+            dx, dy = nx - self.position[0], ny - self.position[1]
+            dist = hypot(dx, dy)
+            if dist <= remaining: #cell is reached, set him back on exact centre
+                self.position = (float(nx), float(ny))
+                self.cell = self._next
+                self._next = None
+                remaining -= dist
+            else: #move towards the cell
+                f = remaining / dist
+                self.position = (self.position[0] + dx * f, self.position[1] + dy * f)
+                remaining = 0
 
 
 class PacGum:

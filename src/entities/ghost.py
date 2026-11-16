@@ -98,32 +98,31 @@ class Ghost(ABC):
 
 
 class Blinky(Ghost):
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 1, chase_rad: int = 2):
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 0.9, chase_rad: int = 1):
         super().__init__(pos, maze, speed)
         self.state: State = State.CHASE
         self._chase_radius: int = chase_rad
         self.color: Color
         self._rand_target = self._generate_random_target()
-        random.seed(self._nbr_of_calls)
+        random.seed()
 
     def _generate_random_target(self) -> tuple[int, int]:
         return (random.randint(0, len(self._maze[0]) - 1),
                 random.randint(0, len(self._maze) - 1))
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
-        print("Hunting pacman")
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
         self.hunt_target(dt, pacman_pos)
 
     def behaviour(self, dt: float, pacman_position: tuple[float, float]) -> None:
         pacman_pos = tuple(map(lambda x: round(x), pacman_position))
         dist_to_pacman = dist(self.map_pos, pacman_pos)
-        if dist_to_pacman <= self._chase_radius and self.state == "chase":
+        if dist_to_pacman <= self._chase_radius and self.state == State.CHASE:
             self._chase(dt, pacman_pos)
         elif self.state == "frightened":
             self.run_away(dt, pacman_pos)
         else:
-            print("Following random target", self._rand_target)
+            # print("Following random target", self._rand_target)
             if self.position == self._rand_target:
                 self._rand_target = self._generate_random_target()
             self.hunt_target(dt, self._rand_target)

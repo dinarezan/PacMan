@@ -456,7 +456,7 @@ class RenderMap:
 
             ghost.behaviour(dt, pac_pos)
         if self.game_init:
-            pacman.update_position(dt)
+            pacman.update_position(dt, self.map.maze)
 
 
     def _draw_intro(self, screen: pygame.Surface) -> None:
