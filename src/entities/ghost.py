@@ -1,5 +1,6 @@
 from enum import Enum
 from abc import ABC
+from math import hypot
 
 
 class State(Enum):
@@ -13,11 +14,12 @@ class State(Enum):
 class Ghost(ABC):
     def __init__(self, pos: tuple[int, int], speed: int = 1):
         self.position: tuple[int, int] = pos
-        self.map_pos: tuple[float, float] = pos
-        self.speed: int = speed
+        self.map_pos: tuple[float, float] = tuple(map(float, pos))
+        self._next: tuple[int, int] | None = None
+        self.speed: int = speed #cells per s
         self.color: Color
 
-    def path_to_target(self, target: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
+    def _path_to_target(self, target: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
 
         def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
@@ -63,17 +65,34 @@ class Ghost(ABC):
         print(f"{len(valid_paths)} valid paths found")
         return valid_paths.pop(0)
 
+    def update_position(self, dt: float, target: tuple[int, int], maze: list[list[int]]) -> None:
+        """Hunt pacman"""
+        remaining = self.speed * dt # distance (in cells) to travel this frame
+        while remaining > 10e-9:
+            if self._next is None:
+                path = self._path_to_target(target, maze)
+                if len(path) <= 1:
+                    return
+                self._next = path[1]
+            nx, ny = self._next
+            dx, dy = nx - self.map_pos[0], ny - self.map_pos[1]
+            dist = hypot(dx, dy)
+            if dist <= remaining: #cell is reached, set him back on exact centre
+                self.map_pos = (float(nx), float(ny))
+                self.position = self._next
+                self._next = None
+                remaining -= dist
+            else: #move towards the cell
+                f = remaining / dist
+                self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
+                remaining = 0
+
 
 class Blinky(Ghost):
     def __init__(self, pos: tuple[int, int], speed: int = 1):
         super().__init__(pos, speed)
         self.state: State = State.CHASE
         self.color: Color
-
-    def behaviour(self, pacman_pos: tuple[int, int], maze: list[list[int]]) -> None:
-        """Hunt pacman"""
-        path = self.path_to_target(pacman_pos, maze)
-
 
 
 class GhostFactory:

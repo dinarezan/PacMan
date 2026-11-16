@@ -1,5 +1,5 @@
 from .mazegenerator import MazeGenerator
-from .pacman import PacMan, PacGum, PacGumFactory
+from .pacman import PacMan, PacGum, SuperPacGum, PacGumFactory
 from .ghost import Ghost, GhostFactory
 from .models import BaseGhost
 from numpy.typing import NDArray
@@ -12,6 +12,7 @@ class Map(MazeGenerator):
         self.pacman: PacMan = self._position_pacman(size)
         self.ghosts: list[Ghost] = GhostFactory().create([g.model_dump() for g in ghosts])
         self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum, self.pacman.position)
+        self.super_pacgums: list[SuperPacGum] = PacGumFactory.create_super(self.maze)
         self.max_time: int = max_time
 
     def _position_pacman(self, size: tuple[int, int]) -> PacMan:
