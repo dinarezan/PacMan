@@ -1,10 +1,48 @@
 import random
+from math import hypot
+
 
 class PacMan:
     def __init__(self, pos: tuple[float, float]):
         self.position: tuple[float, float] = pos
+        #self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self.direction: int = 0
         self.speed: float = 1.0
+        self.size: float = 1.0
+        self.state: str  # * For future states.
+
+    def update_position(self, dt: float) -> None:
+        """Run pacman"""
+        remaining = self.speed * dt  # distance (in cells) to travel this frame
+
+        if self.direction == 0:
+            nx = self.position[0]
+            ny = self.position[1] - 20
+        elif self.direction == 1:
+            nx = self.position[0] + 20
+            ny = self.position[1]
+        elif self.direction == 2:
+            nx = self.position[0]
+            ny = self.position[1] + 20
+        elif self.direction == 3:
+            nx = self.position[0] - 20
+            ny = self.position[1]
+        else:
+            nx = self.position[0] 
+            ny = self.position[1]
+
+        dx, dy = nx - self.position[0], ny - self.position[1]
+        dist = hypot(dx, dy)
+        f = remaining / dist
+
+        if self.valid_movement:
+            pass
+        self.position = (self.position[0] + dx * f, self.position[1] + dy * f)
+        #print("New position: ", self.map_pos)
+
+    def valid_movement(self, pos: tuple[float, float]) -> bool:
+        return True
+
 
 class PacGum:
     def __init__(self, position: tuple[int, int], super: bool = False):

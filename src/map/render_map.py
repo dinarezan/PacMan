@@ -101,6 +101,7 @@ class RenderMap:
         "power-up": 1,
     }
 
+
 # -- animation tuning (seconds unless noted) -----------------------
     SOFT_DIAGONALS = 3        # width of the tile fade-in front, in tiles
     BLOB_SPACING = 0.6        # color blobs lattice spacing, in tiles
@@ -145,6 +146,7 @@ class RenderMap:
 
         self.revealing = False
         self._time = 0.0
+        self.game_init = False
         self._reset_intro()
 
     @staticmethod
@@ -163,11 +165,11 @@ class RenderMap:
     # --  Loading  -----------------------------------------------------
     def load_map(self) -> None:
         """
-        Prepare the static surfaces (background, colored maze).
+        Prepare the static surfaces (background, colored maze) -> Load assets.
 
         Only the tile values that appear in the maze are loaded. Called
-        automatically by `draw` and `start_reveal` if needed; call it
-        earlier (for example during a loading screen) to avoid a pause.
+        automatically by `draw` and `start_reveal` if needed; To use along
+        loading screen to improve performance.
         """
         for value in {v for row in self.map.maze for v in row}:
             image = self.assets.get_image(
@@ -350,7 +352,7 @@ class RenderMap:
     # ---- per-frame update --------------------------------------------
     def update(self, dt: float) -> None:
         """
-        Advance the intro animation.
+        Advance the intro animation. When ends, activate the playing mode.
 
         Parameters
         ----------
@@ -365,9 +367,8 @@ class RenderMap:
             self._update_color(self._time - self._draw_time)
         if self._time >= self._t_end:
             self.finish_reveal()
-        # for ghost in getattr(self.map, "ghosts", ()):
-        #     self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
-        #             self._ghost_sprite(ghost))
+        if not self.game_init:
+            self.game_init = True
 
     def _update_gray(self) -> None:
         """Fade in the gray tiles along anti-diagonals (row + col = d)."""
@@ -448,11 +449,14 @@ class RenderMap:
         self._draw_pacgums(screen)
         self._draw_pacman(screen)
         self._draw_ghosts(screen)
+        pacman = self.map.pacman
         for ghost in self.map.ghosts:
-            pacman = getattr(self.map, "pacman", ())
+            #pacman = getattr(self.map, "pacman", ())
             pac_pos = getattr(pacman, "position", pacman)
 
             ghost.behaviour(dt, pac_pos)
+        if self.game_init:
+            pacman.update_position(dt)
 
 
     def _draw_intro(self, screen: pygame.Surface) -> None:

@@ -8,6 +8,8 @@ from src.entities import Map
 from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
 from src.map.render_map import RenderMap
+from src.states.gameplay import Gameplay
+# from src.core.settings import values   # * -> Put here game speed and other stuff??
 
 
 # TODO Read screen size
@@ -104,6 +106,7 @@ class Engine:
         self.renderer = RenderMap(game_map, self.assets, self.SCREEN_SIZE)
         self.renderer.load_map()
         self.renderer.start_reveal(1.5)
+        self.gameplay = Gameplay(self.renderer)
         self.pause = False
         self.game_active = True
         self._menu.change_menu("pause")
@@ -167,6 +170,7 @@ class Engine:
                 self.running = False
             elif self.pause:
                 self._menu.handle_event(event)
+            # * -------------------------- CONTROL GAMING
             #elif (event.type == pygame.KEYDOWN
             #        and event.key == pygame.K_ESCAPE):
             #    self.pause = True       # back to the menu
@@ -177,6 +181,9 @@ class Engine:
                     self.pause = False   # back to the menu
                 if event.key == pygame.K_SPACE and not self.pause:
                     self.pause = True
+            # * --  Pac-man control  ----------------------------------
+            if not self.pause:
+                self.gameplay.handle_event(event)
 
     def _finish(self) -> None:
         """Release resources."""
