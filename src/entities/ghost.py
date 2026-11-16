@@ -88,10 +88,12 @@ class Ghost(ABC):
                 self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
                 remaining = 0
 
-    def run_away
+    def run_away(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+        """Run away from pacman."""
+        path_to_pacman = self._path_to_target(pacman_pos)
 
     @abstractmethod
-    def behaviour(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+    def behaviour(self, dt: float, pacman_position: tuple[float, float]) -> None:
         pass
 
 
@@ -113,8 +115,8 @@ class Blinky(Ghost):
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
         self.hunt_target(dt, pacman_pos)
 
-    def behaviour(self, dt: float, pacman_pos: tuple[float, float]) -> None:
-        pacman_pos = tuple(map(lambda x: round(x, 0), pacman_pos))
+    def behaviour(self, dt: float, pacman_position: tuple[float, float]) -> None:
+        pacman_pos = tuple(map(lambda x: round(x), pacman_position))
         dist_to_pacman = dist(self.map_pos, pacman_pos)
         if dist_to_pacman <= self._chase_radius and self.state == "chase":
             self._chase(dt, pacman_pos)
@@ -125,9 +127,6 @@ class Blinky(Ghost):
             if self.position == self._rand_target:
                 self._rand_target = self._generate_random_target()
             self.hunt_target(dt, self._rand_target)
-
-
-
 
 
 class GhostFactory:
