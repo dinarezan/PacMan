@@ -1,6 +1,7 @@
 from enum import Enum
-from abc import ABC
-from math import hypot
+from abc import ABC, abstractmethod
+from math import hypot, dist
+import random
 
 
 class State(Enum):
@@ -11,39 +12,40 @@ class State(Enum):
     SLEEP = "sleep"
 
 
+def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
+    x, y = position
+    cell = maze[y][x]
+
+    n = cell & 1
+    e = (cell >> 1) & 1
+    s = (cell >> 2) & 1
+    w = (cell >> 3) & 1
+
+    directions = [(0, -1), (1, 0), (0, 1), (-1, 0)] #NESW
+    neighbours = []
+    i = 0
+    for neighbour in [n, e, s, w]:
+        if neighbour == 0: #open pass, no wall
+            cell = tuple(map(sum, zip(position, directions[i])))
+            x, y = cell
+            if x < 0 or y < 0 or x >= len(maze[0]) or y >= len(maze):
+                continue
+            neighbours.append(cell)
+        i += 1
+    return neighbours
+
+
 class Ghost(ABC):
-    def __init__(self, pos: tuple[int, int], speed: int = 1):
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 1):
         self.position: tuple[int, int] = pos
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
         self.speed: int = speed #cells per s
         self.color: Color
+        self._maze: list[list[int]] = maze
 
-    def _path_to_target(self, target: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
+    def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
-
-        def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
-            x, y = position
-            cell = maze[y][x]
-
-            n = cell & 1
-            e = (cell >> 1) & 1
-            s = (cell >> 2) & 1
-            w = (cell >> 3) & 1
-
-            directions = [(0, -1), (1, 0), (0, 1), (-1, 0)] #NESW
-            neighbours = []
-            i = 0
-            for neighbour in [n, e, s, w]:
-                if neighbour == 0: #open pass, no wall
-                    cell = tuple(map(sum, zip(position, directions[i])))
-                    x, y = cell
-                    if x < 0 or y < 0 or x >= len(maze[0]) or y >= len(maze):
-                        continue
-                    neighbours.append(cell)
-                i += 1
-            return neighbours
-
         visited: list[list[tuple[int, int]]] = []
         visited.append([self.position])
         path: list[tuple[int, int]] = []
@@ -54,11 +56,9 @@ class Ghost(ABC):
 
             if current == target:
                 valid_paths.append(path)
-                if len(valid_paths) >= 10:
-                    break
-                continue
+                break
 
-            neighbours = get_neighbours(current, maze)
+            neighbours = get_neighbours(current, self._maze)
             for neighbour in neighbours:
                 if neighbour not in path:
                     new_path = list(path)
@@ -66,12 +66,12 @@ class Ghost(ABC):
                     visited.append(new_path)
         return valid_paths.pop(0)
 
-    def update_position(self, dt: float, target: tuple[int, int], maze: list[list[int]]) -> None:
-        """Hunt pacman"""
+    def hunt_target(self, dt: float, target: tuple[int, int]) -> None:
+        """Go after target following BFS path."""
         remaining = self.speed * dt # distance (in cells) to travel this frame
         while remaining > 10e-9:
             if self._next is None:
-                path = self._path_to_target(target, maze)
+                path = self._path_to_target(target)
                 if len(path) <= 1:
                     return
                 self._next = path[1]
@@ -88,12 +88,46 @@ class Ghost(ABC):
                 self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
                 remaining = 0
 
+    def run_away
+
+    @abstractmethod
+    def behaviour(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+        pass
+
 
 class Blinky(Ghost):
-    def __init__(self, pos: tuple[int, int], speed: int = 1):
-        super().__init__(pos, speed)
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 1, chase_rad: int = 2):
+        super().__init__(pos, maze, speed)
         self.state: State = State.CHASE
+        self._chase_radius: int = chase_rad
         self.color: Color
+        self._rand_target = self._generate_random_target()
+        random.seed(self._nbr_of_calls)
+
+    def _generate_random_target(self) -> tuple[int, int]:
+        return (random.randint(0, len(self._maze[0]) - 1),
+                random.randint(0, len(self._maze) - 1))
+
+    def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+        print("Hunting pacman")
+        self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
+        self.hunt_target(dt, pacman_pos)
+
+    def behaviour(self, dt: float, pacman_pos: tuple[float, float]) -> None:
+        pacman_pos = tuple(map(lambda x: round(x, 0), pacman_pos))
+        dist_to_pacman = dist(self.map_pos, pacman_pos)
+        if dist_to_pacman <= self._chase_radius and self.state == "chase":
+            self._chase(dt, pacman_pos)
+        elif self.state == "frightened":
+            self.run_away(dt, pacman_pos)
+        else:
+            print("Following random target", self._rand_target)
+            if self.position == self._rand_target:
+                self._rand_target = self._generate_random_target()
+            self.hunt_target(dt, self._rand_target)
+
+
+
 
 
 class GhostFactory:
@@ -101,11 +135,11 @@ class GhostFactory:
         "blinky": Blinky
     }
 
-    def create(self, base_ghosts: list[dict[str, tuple[int, int]]]) -> list[Ghost]:
+    def create(self, base_ghosts: list[dict[str, tuple[int, int]]], maze: list[list[int]]) -> list[Ghost]:
         ghosts = []
         for g in base_ghosts:
             name = g.get("name")
             pos = g.get("position")
             ghost = self.registry.get(name)
-            ghosts.append(ghost(pos))
+            ghosts.append(ghost(pos, maze))
         return ghosts

@@ -26,8 +26,8 @@
 			"seed": 12
 		},
 		{
-			"width": 20,
-			"height": 20,
+			"width": 15,
+			"height": 15,
 			"pacgum": 42,
 			"ghosts": [
 				{
@@ -36,19 +36,19 @@
 				},
 				{
 					"name": "blinky",
-					"position": [18, 18]
+					"position": [14, 14]
 				},
 				{
 					"name": "blinky",
-					"position": [18, 0]
+					"position": [14, 0]
 				},
 				{
 					"name": "blinky",
-					"position": [0, 18]
+					"position": [0, 14]
 				}
 			],
 			"max_time": 120,
-			"seed": 420
+			"seed": 0
 		},
 		{
 			"width": 20,
@@ -73,7 +73,7 @@
 				}
 			],
 			"max_time": 120,
-			"seed": 42
+			"seed": 0
 		}
 	],
 	"lives": 3,
