@@ -28,8 +28,9 @@ class PacMan:
         """Run pacman"""
         remaining = self.speed * dt # distance (in cells) to travel this frame
         while remaining > 10e-9:
-            if self._next is None and not self._start_move(maze):
-                return
+            if self._next is None:
+                if self._start_move(maze) is False:
+                    return
             nx, ny = self._next
             dx, dy = nx - self.position[0], ny - self.position[1]
             dist = hypot(dx, dy)
@@ -45,7 +46,7 @@ class PacMan:
 
 
 class PacGum:
-    def __init__(self, position: tuple[int, int], super: bool = False):
+    def __init__(self, position: tuple[int, int]):
         self.position: tuple[int, int] = position
         self.eaten: bool = False
 

@@ -6,20 +6,12 @@
 			"pacgum": 12,
 			"ghosts": [
 				{
+					"name": "pinky",
+					"position": [0, 5]
+				},
+				{
 					"name": "blinky",
 					"position": [0, 0]
-				},
-				{
-					"name": "blinky",
-					"position": [5, 5]
-				},
-				{
-					"name": "blinky",
-					"position": [5, 0]
-				},
-				{
-					"name": "blinky",
-					"position": [0, 5]
 				}
 			],
 			"max_time": 120,
@@ -35,7 +27,7 @@
 					"position": [0, 0]
 				},
 				{
-					"name": "blinky",
+					"name": "pinky",
 					"position": [14, 14]
 				},
 				{
@@ -43,7 +35,7 @@
 					"position": [14, 0]
 				},
 				{
-					"name": "blinky",
+					"name": "pinky",
 					"position": [0, 14]
 				}
 			],
