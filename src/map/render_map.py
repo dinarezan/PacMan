@@ -452,18 +452,18 @@ class RenderMap:
             return
 
         screen.blit(self._static, (0, 0))
-        self._draw_shadows(screen)
         self._draw_pacgums(screen)
-        self._draw_pacman(screen)
-        self._draw_ghosts(screen)
         pacman = self.map.pacman
         for ghost in self.map.ghosts:
             #pacman = getattr(self.map, "pacman", ())
             pac_pos = getattr(pacman, "position", pacman)
 
             ghost.behaviour(dt, pac_pos)
+        self._draw_ghosts(screen)
         if self.game_init:
             pacman.update_position(dt, self.map.maze)
+        self._draw_pacman(screen)
+        #self._draw_shadows(screen)
 
 
     def _draw_intro(self, screen: pygame.Surface) -> None:
@@ -519,29 +519,32 @@ class RenderMap:
             self._blit(screen, sprite, position, lift=height)
 
     # ! ADD here new shadow on other elements
-    def _draw_shadows(self, screen: pygame.Surface) -> None:
-        """Draw the resting shadow of every pacgum and ghost."""
-        for item in getattr(self.map, "pacgums", ()):
-            kind = getattr(item, "kind", "dot")
-            sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
-            self._draw_shadow(screen, getattr(item, "position", item),
-                              sprite, strength=0.7)
-        for ghost in getattr(self.map, "ghosts", ()):
-            self._draw_shadow(screen, getattr(ghost, "position", ghost),
-                              self._ghost_sprite(ghost))
+    #def _draw_shadows(self, screen: pygame.Surface) -> None:
+    #    """Draw the resting shadow of every pacgum and ghost."""
+    #    for item in getattr(self.map, "pacgums", ()):
+    #        kind = getattr(item, "kind", "dot")
+    #        sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
+    #        self._draw_shadow(screen, getattr(item, "position", item),
+    #                          sprite, strength=0.7)
+    #    #for ghost in getattr(self.map, "ghosts", ()):
+    #    #    self._draw_shadow(screen, getattr(ghost, "position", ghost),
+    #    #                      self._ghost_sprite(ghost))
 
-        pacman = getattr(self.map, "pacman", ())
-        self._draw_shadow(screen, getattr(pacman, "position", pacman),
-                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
-                          size=(50, 70))
-        self._draw_shadow(screen, getattr(pacman, "position", pacman),
-                          self._sprite(self.PACMAN_SPRITE), strength=1.0,
-                          size=(50, 70))
+    #    pacman = getattr(self.map, "pacman", ())
+    #    #self._draw_shadow(screen, getattr(pacman, "position", pacman),
+    #    #                  self._sprite(self.PACMAN_SPRITE), strength=1.0,
+    #    #                  size=(50, 70))
 
     def _draw_pacman(self, screen: pygame.Surface) -> None:
         """Draw Pac-Man."""
         pacman = getattr(self.map, "pacman", None)
         if pacman is not None:
+            self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                              self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                              size=(100, 70))
+            self._draw_shadow(screen, getattr(pacman, "position", pacman),
+                              self._sprite(self.PACMAN_SPRITE), strength=1.0,
+                              size=(50, 70))
             self._blit(screen, self._pacman_sprite(pacman),
                        getattr(pacman, "position", pacman))
 
@@ -549,15 +552,36 @@ class RenderMap:
         """Draw dots, power pellets, fruit and power-ups."""
         for item in getattr(self.map, "pacgums", ()):
             kind = getattr(item, "kind", "dot")
-            name = self.KIND_SPRITES.get(kind, kind)
-            self._blit(screen, self._sprite(name),
+            sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
+            self._draw_shadow(screen, getattr(item, "position", item),
+                              sprite, strength=0.7)
+            self._blit(screen, sprite,
                        getattr(item, "position", item))
 
     def _draw_ghosts(self, screen: pygame.Surface) -> None:
         """Draw the ghosts (blue when frightened)."""
         for ghost in getattr(self.map, "ghosts", ()):
+            self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
+                              self._ghost_sprite(ghost))
             self._blit(screen, self._ghost_sprite(ghost),
                        getattr(ghost, "map_pos", ghost))
+
+    def _draw_super_pellets(self, screen: pygame.Surface) -> None:
+        """Draw Superpellets on the corners"""
+        #for item in getattr(self.map, "######pacgums", ()):   # ! Adapt name
+        #    kind = getattr(item, "kind", "dot")
+        #    name = self.KIND_SPRITES.get(kind, kind)
+        #    self._blit(screen, self._sprite(name),
+        #                getattr(item, "position", item))
+
+    def _draw_power_ups(self, screen: pygame.Surface) -> None:
+        """Draw power ups on the map"""
+        pass
+
+    def _draw_info(self, screen: pygame.Surface) -> None:
+        """Draw information about score, level, lives and power-ups"""
+        pass
+
 
     # -- sprite helpers ------------------------------------------------
     def _pacman_sprite(self, pacman: Any) -> pygame.Surface:
