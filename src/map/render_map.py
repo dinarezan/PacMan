@@ -365,6 +365,8 @@ class RenderMap:
             Seconds since the previous frame.
         """
         if not self.revealing:
+            if self.game_init:
+                self._pacman_anim.update(dt)    # chewing loop C= C< C[
             return
         self._time += dt
         self._update_gray()
@@ -575,7 +577,9 @@ class RenderMap:
         if image is None:
             image = self._sprite(name)
             angle = self.PACMAN_ROTATION.get(direction, 0)
-            if angle:
+            if angle and angle == 180:
+                image = pygame.transform.flip(image, flip_x=True, flip_y=False)
+            elif angle:
                 # pygame rotates counterclockwise; ours is clockwise.
                 image = pygame.transform.rotate(image, -angle)
             self._pacman_images[key] = image

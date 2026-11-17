@@ -5,7 +5,7 @@ class SpriteAnimation:
     """
     Looping sequence of frames, each shown for its own duration.
 
-    The animation only keeps time; it does not load or draw anything.
+    Handles only the animation times.
     Use `frame` to know which image to draw.
 
     Parameters
