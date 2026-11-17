@@ -8,6 +8,9 @@ class Gameplay:
 
     def __init__(self, renderer: RenderMap):
         self.renderer = renderer
+        self.lives: int
+        self.points: int
+        self.current_level: int
 
 # ---- PYGAME: events and drawing ---------------------------------
     def handle_event(self, event: Any) -> bool:

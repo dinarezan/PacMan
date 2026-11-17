@@ -5,14 +5,7 @@ import random
 from typing import Any
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
 from src.entities.map import Map
-
-#class Map(MazeGenerator):
-#    def __init__(self, size: tuple[int, int], pacgum: int, seed: int, ghosts: list[BaseGhost], max_time: int):
-#        super().__init__(size, seed)
-#        self.pacman: PacMan = PacMan(tuple(el // 2 for el in size))
-#        self.ghosts: list[Ghost] = GhostFactory().create([g.model_dump() for g in ghosts])
-#        self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum)
-#        self.max_time: int = max_time
+from src.graphics.animation import SpriteAnimation
 
 
 class RenderMap:
@@ -80,6 +73,13 @@ class RenderMap:
     BG_IMAGE = "maps/bg"
 
     PACMAN_SPRITE = "pacman"
+    PACMAN_FRAMES = (
+            ("pacman1", 0.10),
+            ("pacman2", 0.05),
+            ("pacman3", 0.10),
+            ("pacman2", 0.05),
+        )
+    PACMAN_ROTATION = {0: 270, 1: 0, 2: 90, 3: 180}
     GHOST_SPRITE = "ghost"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     KIND_SPRITES = {
@@ -105,8 +105,8 @@ class RenderMap:
 # -- animation tuning (seconds unless noted) -----------------------
     SOFT_DIAGONALS = 3        # width of the tile fade-in front, in tiles
     BLOB_SPACING = 0.6        # color blobs lattice spacing, in tiles
-    BLOB_JITTER = 0.2         # random blob displacement, in spacings
-    BLOB_GROW = 0.3           # blob growth time, fraction of color_time
+    BLOB_JITTER = 0.6         # random blob displacement, in spacings
+    BLOB_GROW = 0.2           # blob growth time, fraction of color_time
     DROP_TILES = 2.0          # height pacgums and ghosts fall from
     DOT_FALL_TIME = 0.35      # first fall of a pacgum
     DOT_RESTITUTION = 0.45    # bounce height ratio (0 = no rebound)
@@ -143,6 +143,9 @@ class RenderMap:
         self._static: pygame.Surface | None = None      # bg + maze
         self._sprites: dict[tuple[str, float], pygame.Surface] = {}
         self._shadows: dict[tuple[int, int], pygame.Surface] = {}
+        self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
+        self._pacman_images: dict[tuple[str, int | None],
+                                  pygame.Surface] = {}
 
         self.revealing = False
         self._time = 0.0
@@ -258,6 +261,8 @@ class RenderMap:
         """Skip to the end of the intro animation."""
         self.revealing = False
         self._reset_intro()
+        self._pacman_anim.reset()
+        self.game_init = True
 
     def _make_blobs(self, rng: random.Random
                     ) -> list[tuple[float, int, int, float]]:
@@ -535,7 +540,7 @@ class RenderMap:
         """Draw Pac-Man."""
         pacman = getattr(self.map, "pacman", None)
         if pacman is not None:
-            self._blit(screen, self._sprite(self.PACMAN_SPRITE),
+            self._blit(screen, self._pacman_sprite(pacman),
                        getattr(pacman, "position", pacman))
 
     def _draw_pacgums(self, screen: pygame.Surface) -> None:
@@ -553,6 +558,29 @@ class RenderMap:
                        getattr(ghost, "map_pos", ghost))
 
     # -- sprite helpers ------------------------------------------------
+    def _pacman_sprite(self, pacman: Any) -> pygame.Surface:
+        """
+        Return Pac-Man's current image: animated frame, rotated.
+
+        Before the game starts (intro) the idle frame is used; once
+        `game_init` is True the chewing animation plays. The rotation
+        follows ``pacman.direction`` (no rotation if it is None). Rotated
+        frames are cached, so at most 3 frames x 4 directions are made.
+        """
+        direction = getattr(pacman, "direction", None)
+        name = self._pacman_anim.frame if self.game_init else \
+            self.PACMAN_SPRITE
+        key = (name, direction)
+        image = self._pacman_images.get(key)
+        if image is None:
+            image = self._sprite(name)
+            angle = self.PACMAN_ROTATION.get(direction, 0)
+            if angle:
+                # pygame rotates counterclockwise; ours is clockwise.
+                image = pygame.transform.rotate(image, -angle)
+            self._pacman_images[key] = image
+        return image
+
     def _ghost_sprite(self, ghost: Any) -> pygame.Surface:
         if getattr(ghost, "frightened", False):
             return self._sprite(self.FRIGHTENED_SPRITE)
