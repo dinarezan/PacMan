@@ -452,8 +452,6 @@ class RenderMap:
         pacman = self.map.pacman
         for ghost in self.map.ghosts:
             ghost.behaviour(dt, pacman)
-            if ghost.check_if_eaten(pacman):
-                exit()
         if self.game_init:
             pacman.update_position(dt, self.map.maze)
 

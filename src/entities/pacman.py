@@ -7,30 +7,38 @@ class PacMan:
     def __init__(self, pos: tuple[float, float]):
         self.position: tuple[float, float] = pos
         self.cell: tuple[int, int] = (int(pos[0]), int(pos[1]))
-        self.direction: int | None = None
+        self.wanted: int | None = None #direction
+        self.heading: int | None = None #direction
         self._next: tuple[int, int] | None = None
         self.speed: float = 1.0
         self.size: float = 1.0
         self.state: str  # * For future states.
 
-    def _start_move(self, maze) -> bool:
-        if self.direction is None:
-            return False
-        x, y = self.cell
-        if (maze[y][x] >> self.direction) & 1:
-            return False
-        dx, dy = DIRS[self.direction]
-        nx, ny = x + dx, y + dy
-        self._next = (nx, ny)
-        return True
-
     def update_position(self, dt: float, maze: list[list[int]]) -> None:
         """Run pacman"""
+
+        if self._next and self.wanted == (self.heading + 2) % 4: #wanted direction is opposite
+            self.cell, self._next = self._next, self.cell
+            self.heading = self.wanted
+
         remaining = self.speed * dt # distance (in cells) to travel this frame
         while remaining > 10e-9:
             if self._next is None:
-                if self._start_move(maze) is False:
+                x, y = self.cell
+                new_heading = None
+                for d in (self.wanted, self.heading):
+                    if d is None:
+                        continue
+                    if (maze[y][x] >> d) & 1:
+                        continue
+                    new_heading = d
+                    break
+                self.heading = new_heading
+                if self.heading is None:
                     return
+                dx, dy = DIRS[self.heading]
+                self._next = (x + dx, y + dy)
+
             nx, ny = self._next
             dx, dy = nx - self.position[0], ny - self.position[1]
             dist = hypot(dx, dy)

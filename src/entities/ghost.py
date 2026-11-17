@@ -71,7 +71,7 @@ class Ghost(ABC):
         return valid_paths.pop(0)
 
     def _intercepting_path_to_target(self, target: tuple[int, int], forbidden: tuple[int, int]) -> list[tuple[int, int]]:
-        """Generate path to target, can be pacman, corner or else."""
+        """Generate a path to target from the side opposite of target's movement direction."""
         visited: list[list[tuple[int, int]]] = []
         visited.append([self.position])
         path: list[tuple[int, int]] = []
@@ -118,14 +118,6 @@ class Ghost(ABC):
                 f = remaining / dist
                 self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
                 remaining = 0
-
-    def check_if_eaten(self, pacman: PacMan) -> int:
-        round_pacman_pos = (round(pacman.position[0], 1), round(pacman.position[1], 1))
-        round_ghost_pos = (round(self.map_pos[0], 1), round(self.map_pos[1], 1))
-        if round_pacman_pos == round_ghost_pos:
-            print("Pacman is eaten!")
-            return 1
-        return 0
 
     @abstractmethod
     def behaviour(self, dt: float, pacman: PacMan) -> None:
