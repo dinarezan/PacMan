@@ -29,6 +29,7 @@ if __name__ == "__main__":
 
     with open(HIGHSCORE_PATH, "w") as f:
         f.write(highscores.model_dump_json(indent=2))
+    
 
 
     # except FileNotFoundError as e:
