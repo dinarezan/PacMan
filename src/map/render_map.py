@@ -455,10 +455,7 @@ class RenderMap:
         self._draw_pacgums(screen)
         pacman = self.map.pacman
         for ghost in self.map.ghosts:
-            #pacman = getattr(self.map, "pacman", ())
-            pac_pos = getattr(pacman, "position", pacman)
-
-            ghost.behaviour(dt, pac_pos)
+            ghost.behaviour(dt, pacman)
         self._draw_ghosts(screen)
         if self.game_init:
             pacman.update_position(dt, self.map.maze)

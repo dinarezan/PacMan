@@ -159,16 +159,16 @@ class Gameplay:
             #if pacman.speed ==
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
-                    pacman.direction = 0
+                    pacman.wanted = 0
                     return True
                 elif event.key == pygame.K_d:
-                    pacman.direction = 1
+                    pacman.wanted = 1
                     return True
                 elif event.key == pygame.K_s:
-                    pacman.direction = 2
+                    pacman.wanted = 2
                     return True
                 elif event.key == pygame.K_a:
-                    pacman.direction = 3
+                    pacman.wanted = 3
                     return True
         return False
 
