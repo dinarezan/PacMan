@@ -3,6 +3,7 @@ from math import hypot
 
 DIRS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 
+
 class PacMan:
     def __init__(self, pos: tuple[float, float]):
         self.position: tuple[float, float] = pos

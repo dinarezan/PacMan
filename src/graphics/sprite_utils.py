@@ -59,6 +59,7 @@ def get_tinted_image(base_image: Surface, color: tuple[int, int, int],
     Adapt this images to current zoom.
     Cache it to improve speed.
 
+
     Parameters
     --------------------------------------------
     base_image      : Image (Pygame.Surface) to manipulate
