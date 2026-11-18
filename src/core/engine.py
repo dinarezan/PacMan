@@ -121,9 +121,9 @@ class Engine:
             points=0,
             max_time=90,
             pacgum_points=self.config.points_per_pacgum,
-            super_points=self.config.points_per_pacgum,
-            ghosts_points=self.config.points_per_ghost
+            ghosts_points=self.config.points_per_super_pacgum,
             )
+        # super_points=self.config.points_per_pacgum,  # ! Not works
         # max_time=self.config.limit_time_per_level
         self.pause = False
         self.game_active = True

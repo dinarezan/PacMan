@@ -22,7 +22,7 @@ class CollisionSystem:
 
     # To check when affects or not
     GHOST_DISTANCE = 0.5
-    PACGUM_DISTANCE = 0.3
+    PACGUM_DISTANCE = 0.1
 
     def __init__(self) -> None:
         self._touching_ghosts: set[Ghost] = set()

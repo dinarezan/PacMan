@@ -57,7 +57,8 @@ class Game(BaseModel):
 
 # TODO  Dina.job ADD:
 #   ^ limit_time_per_level pydantic
+#   ^ Fix points for supergums
 #   ^ points per fruit
 #   ^ fruits and powerups availables per lvl
 # bite
-# Im hungry and i'm still here 😢
+# Im hungry and i'm still here 😢  -> 12:38 am
