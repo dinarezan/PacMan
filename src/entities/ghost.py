@@ -5,6 +5,7 @@ from math import hypot, dist
 import random
 from .pacman import PacMan
 
+DIRS = {(0, -1): 0, (1, 0): 1, (0, 1): 2, (-1, 0): 3}
 
 class State(Enum):
     SCATTER = "scatter"
@@ -45,6 +46,7 @@ class Ghost(ABC):
         self.speed: int = speed #cells per s
         self.color: Color
         self._maze: list[list[int]] = maze
+        self.eyes: int = 4
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -107,12 +109,15 @@ class Ghost(ABC):
                     return
                 self._next = path[1]
             nx, ny = self._next
+            dir = tuple(map(lambda x, y: x - y, self._next, self.position))
+            self.eyes = DIRS[dir]
             dx, dy = nx - self.map_pos[0], ny - self.map_pos[1]
             dist = hypot(dx, dy)
             if dist <= remaining: #cell is reached, set him back on exact centre
                 self.map_pos = (float(nx), float(ny))
                 self.position = self._next
                 self._next = None
+                self.eyes = 4
                 remaining -= dist
             else: #move towards the cell
                 f = remaining / dist
