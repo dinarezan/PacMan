@@ -57,3 +57,13 @@ class CollisionSystem:
               pacgums=new_pacgums,
               super_pacgums=new_supgums,
         )
+
+
+#for event in pygame.event.get():
+#        if event.type == pygame.QUIT:
+#            run = False
+
+#    sprite1.rect.center = Pacman_sprite
+#    collide = pygame.sprite.spritecollide(sprite1, test_group, False, pygame.sprite.collide_circle)
+
+#    Action()

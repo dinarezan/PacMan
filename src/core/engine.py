@@ -45,7 +45,7 @@ class Engine:
     SCREEN_SIZE = (1880, 1260)
     # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
-    RESPAWN_DELAY = 1.0
+    RESPAWN_DELAY = 0.8
 
     def __init__(self, config: Game,
                  highscore_path: str = str(Path("data") / "highscores.json")):
@@ -78,6 +78,7 @@ class Engine:
             "save_score": self.save_score,
             "get_scores": self.get_scores,
             "return_to_main": self.return_to_main,
+            "resume": self.resume,
         }
         self.running = True
         self._menu = GameMenu(
@@ -170,6 +171,11 @@ class Engine:
         self.respawn_remaining = 0.0
         self._menu.change_menu("main")
 
+    def resume(self) -> None:
+        """ Reusme the active game without restarting ti"""
+        if self.game_active:
+            self.pause = False
+
     # ! -- MAIN LOOP --------------------------------------------------
     def _update(self) -> None:
         """Main loop: events, logic, drawing (in this order)."""
@@ -215,12 +221,12 @@ class Engine:
         cleared at the start of every frame, so anything drawn after the
         flip is never shown.
         """
-        #self.screen.fill((0, 0, 0) if self.respawn_remaining > 0
-        #                 and not self.pause else self.BACKGROUND)
-        self.screen.fill(self.BACKGROUND)
+        self.screen.fill((0, 0, 0) if self.respawn_remaining > 0
+                         and not self.pause else self.BACKGROUND)
+        #self.screen.fill(self.BACKGROUND)
         if self.pause:
             self._menu.draw(self.screen)
-        elif self.renderer: # and self.respawn_remaining <= 0:
+        elif self.renderer and self.respawn_remaining <= 0:
             self.renderer.draw(self.screen, dt)
             if self.gameplay:
                 self.gameplay.draw(self.screen)
@@ -234,18 +240,19 @@ class Engine:
             #elif self.respawn_remaining > 0 and not self.pause:
             #    continue
             elif self.pause:
-                self._menu.handle_event(event)
             # * -------------------------- CONTROL GAMING
-            #elif (event.type == pygame.KEYDOWN
-            #        and event.key == pygame.K_ESCAPE):
-            #    self.pause = True       # back to the menu
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.pause = True   # back to the menu
-                if event.key == pygame.K_SPACE and self.pause:
-                    self.pause = False   # back to the menu
-                if event.key == pygame.K_SPACE and not self.pause:
-                    self.pause = True
+                if (event.type == pygame.KEYDOWN
+                    and event.key in (pygame.K_ESCAPE, pygame.K_p,
+                                      pygame.K_SPACE)
+                    and self._menu.current == "pause"):
+                    self.resume()
+                else:
+                    self._menu.handle_event(event)
+            elif (event.type == pygame.KEYDOWN
+                    and event.key in (pygame.K_ESCAPE, pygame.K_p,
+                                      pygame.K_SPACE)
+                    and self._menu.current == "pause"):
+                        self.pause = True
             # * --  Pac-man control  ----------------------------------
             if not self.pause:
                 self.gameplay.handle_event(event)
