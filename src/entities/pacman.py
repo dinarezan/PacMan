@@ -1,5 +1,6 @@
 import random
 from math import hypot
+from .file_loaders import load_temp_score, update_temp_score
 
 DIRS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 
@@ -54,19 +55,27 @@ class PacMan:
 
 
 class PacGum:
-    def __init__(self, position: tuple[int, int]):
+    def __init__(self, position: tuple[int, int], points: int):
         self.position: tuple[int, int] = position
         self.eaten: bool = False
+        self.value: int = points
+
+    def detector(self, pacman: PacMan) -> None:
+        if pacman.cell == self.position and not self.eaten:
+            self.eaten = True
+            score = load_temp_score()
+            score += self.value
+            update_temp_score(score)
 
 
-class SuperPacGum:
-    def __init__(self, position: tuple[int, int]):
-        self.position: tuple[int, int] = position
-        self.eaten: bool = False
+class SuperPacGum(PacGum):
+    def __init__(self, position: tuple[int, int], points: int):
+        super().__init__(position, points)
+
 
 class PacGumFactory:
     @staticmethod
-    def create(maze: list[list[int]], number: int, pacman_pos: tuple[int, int]) -> list[PacGum]:
+    def create(maze: list[list[int]], number: int, pacman_pos: tuple[int, int], points: int) -> list[PacGum]:
         width, height = len(maze[0]), len(maze)
         indices = []
         for i in range(width):
@@ -80,15 +89,15 @@ class PacGumFactory:
         positions = random.choices(indices, k=(number - 4))
         pacgums = []
         for pos in positions:
-            pacgums.append(PacGum(pos))
+            pacgums.append(PacGum(pos, points))
         return pacgums
 
     @staticmethod
-    def create_super(maze: list[list[int]]) -> list[SuperPacGum]:
+    def create_super(maze: list[list[int]], points: int) -> list[SuperPacGum]:
         width, height = len(maze[0]), len(maze)
         corners = [(0, 0), (width - 1, 0),
                    (0, height - 1), (width - 1, height - 1)]
         super_pacgums = []
         for pos in corners:
-            super_pacgums.append(SuperPacGum(pos))
+            super_pacgums.append(SuperPacGum(pos, points))
         return super_pacgums

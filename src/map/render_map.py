@@ -450,6 +450,8 @@ class RenderMap:
         self._draw_pacman(screen)
         self._draw_ghosts(screen)
         pacman = self.map.pacman
+        for gum in self.map.pacgums:
+            gum.detector(pacman)
         for ghost in self.map.ghosts:
             ghost.behaviour(dt, pacman)
         if self.game_init:
@@ -538,6 +540,8 @@ class RenderMap:
     def _draw_pacgums(self, screen: pygame.Surface) -> None:
         """Draw dots, power pellets, fruit and power-ups."""
         for item in getattr(self.map, "pacgums", ()):
+            if item.eaten is True:
+                continue
             kind = getattr(item, "kind", "dot")
             name = self.KIND_SPRITES.get(kind, kind)
             self._blit(screen, self._sprite(name),

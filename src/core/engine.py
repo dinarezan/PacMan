@@ -9,6 +9,7 @@ from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
+from src.entities import load_temp_score, delete_temp_score
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
 
 
@@ -85,6 +86,8 @@ class Engine:
         self._config()
         self._update()
         self._finish()
+        self.score = load_temp_score()
+        delete_temp_score()
 
     def _init(self) -> None:
         """Load graphics, and assets."""
@@ -102,7 +105,10 @@ class Engine:
             seed=level.seed,
             ghosts=level.ghosts,
             pacgum=level.pacgum,
-            max_time=level.max_time)
+            max_time=level.max_time,
+            points_per_pacgum=self.config.points_per_pacgum,
+            points_per_super_pacgum=self.config.points_per_super_pacgum,
+            points_per_ghost=self.config.points_per_ghost)
         # print("level:\n", game_map.maze)
         self.renderer = RenderMap(game_map, self.assets, self.SCREEN_SIZE)
         self.renderer.load_map()
