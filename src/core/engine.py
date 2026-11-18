@@ -4,7 +4,7 @@ from pathlib import Path
 import pygame
 
 from src.entities import Map
-from src.entities.config import load_highscores, save_highscore
+from src.entities.file_loaders import load_highscores, save_highscore
 from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
 from src.graphics.hud import Hud
