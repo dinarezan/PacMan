@@ -1,16 +1,147 @@
+from __future__ import annotations
 import pygame
 
 from typing import Any
+import time
+from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
 
 
 class Gameplay:
+    """ Handle the values for a game play along the levels.
 
-    def __init__(self, renderer: RenderMap):
+    Parameters
+    ------------------------------------------
+    renderer : RenderMap
+        Aplication map drawing.
+
+    lives : int
+        Quantity of lives available to pacmanh.
+
+    level : int
+        Current active level in the game.
+
+    points : int
+        Total points earned along the game -> Used to load games.
+
+    max_time : int
+        Max time to play the current level.
+
+    curr_time : int
+        Current game time or time left for this level.
+    """
+#start = time.time()
+#print("hello")
+#end = time.time()
+#print(end - start)
+
+    LEVEL_TIME = 90.0
+    START_LIVES = 3
+    MAX_LIVES = 5
+
+    def __init__(self,
+                 renderer: RenderMap,
+                 lives: int = 3,
+                 level: int = 1,
+                 points: int = 0,
+                 max_time: float = 90,
+                 curr_time: float = 0):
         self.renderer = renderer
-        self.lives: int
-        self.points: int
-        self.current_level: int
+        self.hud = Hud(renderer.assets)
+        self.lives = max(0, min(self.MAX_LIVES, lives))
+        self.points = points
+        self.fruits = 0
+        self.current_level: int = level
+        self.curr_time = curr_time
+        self.max_time = max_time
+        self.max_time = float(max_time)
+        self.time_left = self.max_time
+        self.time_up = False
+        #self.time: int = time
+
+    @property
+    def game_over(self) -> bool:
+        """True when no lives are left."""
+        return self.lives <= 0
+
+    def add_points(self, amount: int) -> None:
+        """Add `amount` to the score."""
+        self.points += amount
+
+    def add_life(self) -> None:
+        """Gain a life (up to `MAX_LIVES`)."""
+        self.lives = min(self.MAX_LIVES, self.lives + 1)
+
+    def lose_life(self) -> bool:
+        """
+        Lose a life.
+
+        Returns
+        -------
+        bool
+            True if Pac-Man still has lives, False on game over.
+        """
+        self.lives = max(0, self.lives - 1)
+        return self.lives > 0
+
+    def collect_fruit(self, points: int = 0) -> None:
+        """Count a fruit eaten, optionally adding its points."""
+        self.fruits += 1
+        self.add_points(points)
+
+    def activate_power_up(self, name: str,
+                          duration: float | None = None) -> None:
+        """
+        Activate a bonus (replacing any active one).
+
+        Parameters
+        ----------
+        name : str
+            Sprite name in ``assets/sprites``, e.g. ``"power-up"``.
+        duration : float, optional
+            Seconds it lasts. If None it stays until `clear_power_up`.
+        """
+        self.power_up = name
+        self.power_up_left = duration
+        self.power_up_total = duration
+
+    def clear_power_up(self) -> None:
+        """Remove the active bonus."""
+        self.power_up = None
+        self.power_up_left = None
+        self.power_up_total = None
+
+    def reset_time(self) -> None:
+        """Restore the level timer."""
+        self.time_left = self.max_time
+        self.time_up = False
+
+    def update(self, dt: float) -> None:
+        """
+        Advance the timers.
+
+        Nothing runs until the intro animation has finished
+        (``renderer.game_init``) or after game over. The Engine does not
+        call this while paused, so pausing freezes the clock.
+
+        Parameters
+        ----------
+        dt : float
+            Seconds since the previous frame.
+        """
+        if not self.renderer.game_init or self.game_over:
+            return
+        if not self.time_up:
+            self.time_left = max(0.0, self.time_left - dt)
+            self.time_up = self.time_left == 0.0
+        #if self.power_up_left is not None:
+        #    self.power_up_left -= dt
+        #    if self.power_up_left <= 0:
+        #        self.clear_power_up()
+
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draw the HUD on top of the map."""
+        self.hud.draw(screen, self)
 
 # ---- PYGAME: events and drawing ---------------------------------
     def handle_event(self, event: Any) -> bool:
@@ -24,8 +155,6 @@ class Gameplay:
 
         # ? Addd a lapse before start the game and then ctrl it.
         if (event.type == pygame.KEYDOWN and self.renderer.game_init):
-            print("Key is working")
-            #pacman = getattr(self.renderer.map, "pacman", ())
             pacman = self.renderer.map.pacman
             #if pacman.speed ==
             if event.type == pygame.KEYDOWN:
@@ -42,6 +171,11 @@ class Gameplay:
                     pacman.direction = 3
                     return True
         return False
+
+    def update_time(self, dt) -> None:
+        """ Update the time in the game """
+        pass
+
 
 
 

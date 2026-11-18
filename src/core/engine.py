@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,6 +6,7 @@ import pygame
 from src.entities import Map
 from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
+from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
@@ -38,6 +38,8 @@ class Engine:
         Value chosen in the configuration menu, if any.
     """
 
+
+    # TODO ADD function to read screen size
     SCREEN_SIZE = (1880, 1260)
     # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
@@ -103,10 +105,20 @@ class Engine:
             pacgum=level.pacgum,
             max_time=level.max_time)
         # print("level:\n", game_map.maze)
-        self.renderer = RenderMap(game_map, self.assets, self.SCREEN_SIZE)
+        width, height = self.SCREEN_SIZE
+        map_area = (width, height - Hud.TOP_HEIGHT - Hud.BOTTOM_HEIGHT)
+        self.renderer = RenderMap(game_map, self.assets, map_area,
+                                  origin=(0, Hud.TOP_HEIGHT),
+                                  screen_size=self.SCREEN_SIZE)
         self.renderer.load_map()
         self.renderer.start_reveal(1.5)
-        self.gameplay = Gameplay(self.renderer)
+        self.gameplay = Gameplay(
+            renderer=self.renderer,
+            level=1,
+            lives=3,
+            points=0,
+            max_time=90,
+            )
         self.pause = False
         self.game_active = True
         self._menu.change_menu("pause")
@@ -148,6 +160,8 @@ class Engine:
             self._menu.update()
         elif self.renderer:
             self.renderer.update(dt)
+            if self.gameplay:
+                self.gameplay.update(dt)
 
     def draw(self, dt: float) -> None:
         """Clear the screen, draw the active state and present the frame.
@@ -161,6 +175,8 @@ class Engine:
             self._menu.draw(self.screen)
         elif self.renderer:
             self.renderer.draw(self.screen, dt)
+            if self.gameplay:
+                self.gameplay.draw(self.screen)
         pygame.display.flip()
 
     def event_loop(self) -> None:

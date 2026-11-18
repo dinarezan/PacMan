@@ -118,7 +118,7 @@ class RenderMap:
     GHOST_START_SCALE = 0.2
     SHADOW_WIDTH = 0.8        # shadow width relative to the sprite
     SHADOW_OFFSET = 0.3       # shadow drop below center, times sprite height
-    SHADOW_LAYERS = 16
+    SHADOW_LAYERS = 12
 
     def __init__(self, game_map: Map, assets: Any, size: tuple[int, int],
                  origin: tuple[int, int] = (0, 0),
@@ -563,6 +563,7 @@ class RenderMap:
         for ghost in getattr(self.map, "ghosts", ()):
             self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
                               self._ghost_sprite(ghost))
+            #if ghost.color
             self._blit(screen, self._ghost_sprite(ghost),
                        getattr(ghost, "map_pos", ghost))
 
