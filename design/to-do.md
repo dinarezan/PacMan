@@ -4,7 +4,7 @@
 
 ## General Rules
 
-- [ ] Python 3.10 or >
+- [X] Python 3.10 or >
 - [ ] flake8
 - [ ] mypy
 - [ ] Catch all exceptions (NO CRASH)
@@ -23,8 +23,8 @@
 ## Additional
 
 - [ ] Tests
-- [ ] .gitignore
-- [ ] venv
+- [X] .gitignore
+- [X] venv
 
 ## Mandatory
 

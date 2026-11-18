@@ -462,7 +462,6 @@ class RenderMap:
         self._draw_pacman(screen)
         #self._draw_shadows(screen)
 
-
     def _draw_intro(self, screen: pygame.Surface) -> None:
         """Draw one frame of the intro animation."""
         t = self._time
