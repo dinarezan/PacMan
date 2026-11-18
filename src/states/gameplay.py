@@ -70,6 +70,7 @@ class Gameplay:
         self.points_per_super_pacgum = super_points
         self.points_per_ghost = ghosts_points
         self.collisions = CollisionSystem()
+        self.life_lost = False
 
     @property
     def game_over(self) -> bool:
@@ -141,6 +142,7 @@ class Gameplay:
         dt : float
             Seconds since the previous frame.
         """
+        self.life_lost = False
         if not self.renderer.game_init or self.game_over:
             return
         if not self.time_up:
@@ -182,6 +184,16 @@ class Gameplay:
             self.add_points(self.points_per_super_pacgum)
         if contacts.ghosts:
             self.lose_life()
+            self.life_lost = True
+
+    def reset_positions(self) -> None:
+        game_map = self.renderer.map
+        game_map.pacman.reset_position()
+        for ghost in game_map.ghosts:
+            ghost.reset_position()
+        self.collisions = CollisionSystem()
+        self.collisions.check(game_map.pacman, game_map.ghosts,
+                              game_map.pacgums, game_map.super_pacgums)
 
     def draw(self, screen: pygame.Surface) -> None:
         """Draw the HUD on top of the map."""

@@ -6,6 +6,7 @@ DIRS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 
 class PacMan:
     def __init__(self, pos: tuple[float, float]):
+        self.spawn_pos = pos
         self.position: tuple[float, float] = pos
         self.cell: tuple[int, int] = (int(pos[0]), int(pos[1]))
         self.wanted: int | None = None #direction
@@ -14,6 +15,20 @@ class PacMan:
         self.speed: float = 1.0
         self.size: float = 1.0
         self.state: str  # * For future states.
+
+    # TODO This pacman desire to watch player before start game -> Position number 4.
+    # TODO This pacman desire to reset at this position.
+    # TODO This pacman desire to became better, like supersaiayin or else -> self.state
+    # TODO This pacman desire to have fruits and power ups to eat.
+    # TODO This pacman desire over all, your friday tosties. 🔺🔺🔺🔺
+                                    # ! IMPORTANT   ^^^^^^^
+
+    def reset_position(self) -> None:
+        self.position = self.spawn_pos
+        self.cell = (int(self.position[0]), int(self.position[1]))
+        self.wanted = None
+        self.heading = None
+        self._next = None
 
     def update_position(self, dt: float, maze: list[list[int]]) -> None:
         """Run pacman"""

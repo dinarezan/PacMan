@@ -4,6 +4,7 @@ from pathlib import Path
 import pygame
 
 from src.entities import Map
+from src.entities.config import load_highscores, save_highscore
 from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
 from src.graphics.hud import Hud
@@ -44,8 +45,10 @@ class Engine:
     SCREEN_SIZE = (1880, 1260)
     # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
+    RESPAWN_DELAY = 1.0
 
-    def __init__(self, config: Game):
+    def __init__(self, config: Game,
+                 highscore_path: str = str(Path("data") / "highscores.json")):
         pygame.init()
         self.font = pygame.font.Font(None, 32)
         self.title_font = pygame.font.Font(None, 48)
@@ -59,6 +62,8 @@ class Engine:
         self.game_active = False
         self.option: int | None = None
         self.renderer: RenderMap | None = None
+        self.highscore_path = highscore_path
+        self.respawn_remaining = 0.0
 
     # -- Init stuff ----------------------------------------------------
     def _pre_init(self) -> None:
@@ -70,6 +75,9 @@ class Engine:
             "start": self.start,
             "exit": self.exit_app,
             "set_option": self.set_option,
+            "save_score": self.save_score,
+            "get_scores": self.get_scores,
+            "return_to_main": self.return_to_main,
         }
         self.running = True
         self._menu = GameMenu(
@@ -99,7 +107,8 @@ class Engine:
             print("No more levels")
             return
         print("Running the game")
-        level = self.config.levels.pop(0)   # ? LEVEL SHOULD HANDLE LEVEL STYLE
+        #level = self.config.levels.pop(0)   # ? LEVEL SHOULD HANDLE LEVEL STYLE
+        level = self.config.levels[0]
         game_map = Map(
             size=(level.width, level.height),
             seed=level.seed,
@@ -128,6 +137,8 @@ class Engine:
         self.pause = False
         self.game_active = True
         self._menu.change_menu("pause")
+        self.score = 0
+        self.respawn_remaining = 0.0
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
@@ -142,6 +153,22 @@ class Engine:
     def _config(self) -> None:
         """Apply the configuration."""
         pass
+
+    def save_score(self, name: str, score: int) -> None:
+        save_highscore(self.highscore_path, name, score)
+
+    def get_scores(self) -> list[str]:
+        scores = load_highscores(self.highscore_path).players
+        return [f"{player.name}       {player.score}"
+                for player in sorted(scores, key=lambda p: p.score,
+                                     reverse=True)[:10]]
+
+    def return_to_main(self) -> None:
+        self.pause = True
+        self.game_active = False
+        self.renderer = None
+        self.respawn_remaining = 0.0
+        self._menu.change_menu("main")
 
     # ! -- MAIN LOOP --------------------------------------------------
     def _update(self) -> None:
@@ -164,10 +191,22 @@ class Engine:
         """
         if self.pause:
             self._menu.update()
+        elif self.respawn_remaining > 0:
+            self.respawn_remaining = max(0.0, self.respawn_remaining - dt)
+            print("RESPAWN: ", self.respawn_remaining)
         elif self.renderer:
             self.renderer.update(dt)
             if self.gameplay:
                 self.gameplay.update(dt)
+                if self.gameplay.life_lost:
+                    if self.gameplay.game_over:
+                        self.score = self.gameplay.points
+                        self.pause = True
+                        self.game_active = False
+                        self._menu.show_game_over(self.score)
+                    else:
+                        self.gameplay.reset_positions()
+                        self.respawn_remaining = self.RESPAWN_DELAY
 
     def draw(self, dt: float) -> None:
         """Clear the screen, draw the active state and present the frame.
@@ -176,10 +215,12 @@ class Engine:
         cleared at the start of every frame, so anything drawn after the
         flip is never shown.
         """
+        #self.screen.fill((0, 0, 0) if self.respawn_remaining > 0
+        #                 and not self.pause else self.BACKGROUND)
         self.screen.fill(self.BACKGROUND)
         if self.pause:
             self._menu.draw(self.screen)
-        elif self.renderer:
+        elif self.renderer: # and self.respawn_remaining <= 0:
             self.renderer.draw(self.screen, dt)
             if self.gameplay:
                 self.gameplay.draw(self.screen)
@@ -190,6 +231,8 @@ class Engine:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            #elif self.respawn_remaining > 0 and not self.pause:
+            #    continue
             elif self.pause:
                 self._menu.handle_event(event)
             # * -------------------------- CONTROL GAMING

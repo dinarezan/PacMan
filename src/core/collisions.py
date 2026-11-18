@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from math import dist
 
+
 from src.entities.ghost import Ghost
 from src.entities.pacman import PacGum, PacMan, SuperPacGum
 

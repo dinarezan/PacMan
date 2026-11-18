@@ -39,12 +39,18 @@ def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tup
 
 class Ghost(ABC):
     def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 1):
+        self.spawn_pos = pos
         self.position: tuple[int, int] = pos
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
         self.speed: int = speed #cells per s
         self.color: Color
         self._maze: list[list[int]] = maze
+
+    def reset_position(self) -> None:
+        self.position = self.spawn_pos
+        self.map_pos = tuple(map(float, self.spawn_pos))
+        self._next = None
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -163,6 +169,7 @@ class Pinky(Ghost):
         target = pacman._next
         if target is None:
             self.hunt_target(dt, pacman.cell, self._path_to_target, pacman.cell)
+            return
         forbidden = pacman.cell
         self.hunt_target(dt, target, self._intercepting_path_to_target, target, forbidden)
 
