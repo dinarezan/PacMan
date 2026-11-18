@@ -2,9 +2,11 @@ from __future__ import annotations
 import pygame
 
 from typing import Any
+from math   import ceil
 import time
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
+from src.core.collisions import Collisions, CollisionSystem
 
 
 class Gameplay:
@@ -45,7 +47,11 @@ class Gameplay:
                  level: int = 1,
                  points: int = 0,
                  max_time: float = 90,
-                 curr_time: float = 0):
+                 curr_time: float = 0,
+                 pacgum_points: int = 10,
+                 super_points: int = 50,
+                 ghosts_points: int = 200,
+                ):
         self.renderer = renderer
         self.hud = Hud(renderer.assets)
         self.lives = max(0, min(self.MAX_LIVES, lives))
@@ -58,6 +64,12 @@ class Gameplay:
         self.time_left = self.max_time
         self.time_up = False
         #self.time: int = time
+
+    # -- Points ----------------------------------
+        self.points_per_pacgum = pacgum_points
+        self.points_per_super_pacgum = super_points
+        self.points_per_ghost = ghosts_points
+        self.collisions = CollisionSystem()
 
     @property
     def game_over(self) -> bool:
@@ -134,10 +146,42 @@ class Gameplay:
         if not self.time_up:
             self.time_left = max(0.0, self.time_left - dt)
             self.time_up = self.time_left == 0.0
+        if self.renderer.revealing:
+            return
+
+        game_map = self.renderer.map
+        max_speed = max([game_map.pacman.speed]
+                        + [ghost.speed for ghost in game_map.ghosts])
+
+        steps = max(1, ceil(max_speed * dt / 0.1))
+        step_dt = dt / steps
+        self._check_collisions()
+        for _ in range(steps):
+            if self.game_over:
+                break
+            for ghost in game_map.ghosts:
+                ghost.behaviour(step_dt, game_map.pacman)
+                game_map.pacman.update_position(step_dt, game_map.maze)
+                self._check_collisions()
         #if self.power_up_left is not None:
         #    self.power_up_left -= dt
         #    if self.power_up_left <= 0:
         #        self.clear_power_up()
+
+    def _check_collisions(self) -> None:
+        game_map = self.renderer.map
+        contacts = self.collisions.check(
+            game_map.pacman, game_map.ghosts, game_map.pacgums,
+            game_map.super_pacgums
+        )
+        for gum in contacts.pacgums:
+            gum.eaten = True
+            self.add_points(self.points_per_pacgum)
+        for sup in contacts.super_pacgums:
+            sup.eaten = True
+            self.add_points(self.points_per_super_pacgum)
+        if contacts.ghosts:
+            self.lose_life()
 
     def draw(self, screen: pygame.Surface) -> None:
         """Draw the HUD on top of the map."""

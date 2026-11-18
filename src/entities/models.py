@@ -55,3 +55,9 @@ class Game(BaseModel):
     points_per_super_pacgum: int = Field(ge=0)
     points_per_ghost: int = Field(ge=0)
 
+# TODO  Dina.job ADD:
+#   ^ limit_time_per_level pydantic
+#   ^ points per fruit
+#   ^ fruits and powerups availables per lvl
+# bite
+# Im hungry and i'm still here 😢

@@ -9,6 +9,7 @@ from src.graphics.asset_manager import AssetManager
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
+from src.entities.models import Game
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
 
 
@@ -44,7 +45,7 @@ class Engine:
     # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
 
-    def __init__(self, config):
+    def __init__(self, config: Game):
         pygame.init()
         self.font = pygame.font.Font(None, 32)
         self.title_font = pygame.font.Font(None, 48)
@@ -119,7 +120,11 @@ class Engine:
             lives=3,
             points=0,
             max_time=90,
+            pacgum_points=self.config.points_per_pacgum,
+            super_points=self.config.points_per_pacgum,
+            ghosts_points=self.config.points_per_ghost
             )
+        # max_time=self.config.limit_time_per_level
         self.pause = False
         self.game_active = True
         self._menu.change_menu("pause")
