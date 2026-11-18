@@ -177,7 +177,7 @@ class GhostFactory:
         "pinky": Pinky
     }
 
-    def create(self, base_ghosts: list[dict[str, tuple[int, int]]], maze: list[list[int]]) -> list[Ghost]:
+    def create(self, base_ghosts: list[dict[str, tuple[int, int]]], maze: list[list[int]], points: int) -> list[Ghost]:
         ghosts = []
         for g in base_ghosts:
             name = g.get("name")
