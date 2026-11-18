@@ -50,6 +50,7 @@ class Engine:
         self.clock = pygame.time.Clock()
         self.speed = 1.0
         self.config = config
+        self.score = 0
         self.running = False
         self.pause = True
         self.game_active = False
