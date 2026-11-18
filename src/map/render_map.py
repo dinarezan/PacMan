@@ -595,7 +595,7 @@ class RenderMap:
         follows ``pacman.direction`` (no rotation if it is None). Rotated
         frames are cached, so at most 3 frames x 4 directions are made.
         """
-        direction = getattr(pacman, "direction", None)
+        direction = getattr(pacman, "wanted", None)
         name = self._pacman_anim.frame if self.game_init else \
             self.PACMAN_SPRITE
         key = (name, direction)

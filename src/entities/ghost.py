@@ -7,11 +7,13 @@ from .pacman import PacMan
 
 
 class State(Enum):
-    SCATTER = "scatter"
-    CHASE = "chase"
-    FRIGHTENED = "frightened"
-    EATEN = "eaten"
-    SLEEP = "sleep"
+    SCATTER = "scatter"     # Random movement B
+    CHASE = "chase"         # Looking for pacman B
+    FRIGHTENED = "frightened" # When can be eaten
+    EATEN = "eaten"         # eYES ONLY B relocate back to the corner actual BFS
+    WAITING = "waiting"     # after returned into his corner for respam B do nothing in the corner
+    SLEEP = "sleep"         # bEFORE START B do nothing
+    NIGHTMARE = "nightmare" # Nightmare, Dina, NIGHTMARE!! B
 
 
 def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
@@ -169,6 +171,7 @@ class Pinky(Ghost):
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         if self.state == State.CHASE:
             self._intercept_target(dt, pacman)
+
 
 
 class GhostFactory:
