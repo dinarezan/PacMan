@@ -13,7 +13,7 @@ CONTROLS = [
     ("Up / Down", "Move through the menu options or scroll a screen."),
     ("A / S", "Move through the menu options or scroll a screen."),
     ("Backspace", "Go back to the previous menu."),
-    ("P or Esc", "Pause the game."),
+    ("P / Esc / Space", "Pause or resume the game."),
     ("M", "Mute or unmute the sound."),
 ]
 

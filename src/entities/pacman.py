@@ -1,6 +1,5 @@
 import random
 from math import hypot
-# from .file_loaders import load_temp_score, update_temp_score
 
 DIRS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 
@@ -10,24 +9,17 @@ class PacMan:
         self.spawn_pos = pos
         self.position: tuple[float, float] = pos
         self.cell: tuple[int, int] = (int(pos[0]), int(pos[1]))
-        self.wanted: int | None = 4
+        self.wanted: int | None = None #direction
         self.heading: int | None = None #direction
         self._next: tuple[int, int] | None = None
         self.speed: float = 1.0
         self.size: float = 1.0
         self.state: str  # * For future states.
 
-    # TODO This pacman desire to watch player before start game -> Position number 4.
-    # TODO This pacman desire to reset at this position.
-    # TODO This pacman desire to became better, like supersaiayin or else -> self.state
-    # TODO This pacman desire to have fruits and power ups to eat.
-    # TODO This pacman desire over all, your friday tosties. 🔺🔺🔺🔺
-                                    # ! IMPORTANT   ^^^^^^^
-
     def reset_position(self) -> None:
         self.position = self.spawn_pos
-        self.cell = (int(self.spawn_pos[0]), int(self.spawn_pos[1]))
-        self.wanted = 4
+        self.cell = (int(self.position[0]), int(self.position[1]))
+        self.wanted = None
         self.heading = None
         self._next = None
 
@@ -51,7 +43,7 @@ class PacMan:
                     new_heading = d
                     break
                 self.heading = new_heading
-                if self.heading is None or self.heading == 4:
+                if self.heading is None:
                     return
                 dx, dy = DIRS[self.heading]
                 self._next = (x + dx, y + dy)
@@ -76,22 +68,18 @@ class PacGum:
         self.eaten: bool = False
         self.value: int = points
 
-    # def detector(self, pacman: PacMan) -> None:
-    #     if pacman.cell == self.position and not self.eaten:
-    #         self.eaten = True
-    #         score = load_temp_score()
-    #         score += self.value
-    #         update_temp_score(score)
-
 
 class SuperPacGum(PacGum):
     def __init__(self, position: tuple[int, int], points: int):
         super().__init__(position, points)
 
-
 class PacGumFactory:
     @staticmethod
-    def create(maze: list[list[int]], number: int, pacman_pos: tuple[int, int], points: int) -> list[PacGum]:
+    def create(
+            maze: list[list[int]],
+            number: int,
+            pacman_pos: tuple[int, int],
+            points: int) -> list[PacGum]:
         width, height = len(maze[0]), len(maze)
         indices = []
         for i in range(width):

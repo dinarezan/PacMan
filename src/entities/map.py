@@ -7,15 +7,29 @@ import numpy as np
 
 
 class Map(MazeGenerator):
-    def __init__(self, size: tuple[int, int], pacgum: int, seed: int,
-                 ghosts: list[BaseGhost], max_time: int,
-                 points_per_pacgum: int, points_per_super_pacgum: int,
-                 points_per_ghost: int):
+    def __init__(self,
+                 size: tuple[int, int],
+                 pacgum: int,
+                 seed: int,
+                 ghosts: list[BaseGhost],
+                 max_time: int,
+                 points_per_pacgum: int,
+                 points_per_super_pacgum: int,
+                 points_per_ghost: int
+                 ):
         super().__init__(size=size, seed=seed, perfect=False)
         self.pacman: PacMan = self._position_pacman(size)
-        self.ghosts: list[Ghost] = GhostFactory().create([g.model_dump() for g in ghosts], self.maze, points_per_ghost)
-        self.pacgums: list[PacGum] = PacGumFactory.create(self.maze, pacgum, self.pacman.position, points_per_pacgum)
-        self.super_pacgums: list[SuperPacGum] = PacGumFactory.create_super(self.maze, points_per_super_pacgum)
+        self.ghosts: list[
+            Ghost] = GhostFactory().create([g.model_dump() for g in ghosts],
+                                           self.maze,
+                                           points_per_ghost)
+        self.pacgums: list[
+            PacGum] = PacGumFactory.create(self.maze, pacgum,
+                                           self.pacman.position,
+                                           points_per_pacgum)
+        self.super_pacgums: list[
+            SuperPacGum] = PacGumFactory.create_super(self.maze,
+                                                      points_per_super_pacgum)
         self.max_time: int = max_time
 
     def _position_pacman(self, size: tuple[int, int]) -> PacMan:
@@ -46,4 +60,5 @@ class Map(MazeGenerator):
         print(self.maze[y][x])
         for ghost in self.ghosts:
             print(f"Ghost on postion {ghost.position} path:")
-            ghost.path_to_target(tuple(map(round, self.pacman.position)), self.maze)
+            ghost.path_to_target(
+                tuple(map(round, self.pacman.position)), self.maze)
