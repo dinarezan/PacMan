@@ -5,6 +5,7 @@ from .player import Highscores, Player
 from pathlib import Path
 
 TEMP_SCORE = "data/temp/score.txt"
+HIGHSCORE_PATH = "data/highscores.json"
 
 
 def load_highscores(path: str) -> Highscores:
@@ -28,28 +29,42 @@ def load_config(path: str) -> Game:
 
 
 
-def save_highscore(path: str, name: str, score: int) -> None:
-    pass
+def save_highscore(name: str, score: int) -> None:
+    highscores = load_highscores(HIGHSCORE_PATH)
+    player = name
+    Player(name=player)
+
+    existing: Player = next((p for p in highscores.players if p.name == player.name), None)
+    if existing is None:
+        highscores.players.append(Player(name=player.name, score=score))
+    elif score > existing.score:
+        existing.score = score
+
+    highscores.players.sort(key=lambda p: p.score, reverse=True)
+
+    with open(HIGHSCORE_PATH, "w") as f:
+        f.write(highscores.model_dump_json(indent=2))
+
 
  # ! PACMAN doesn't like tempo files :(
-def load_temp_score() -> int:
-    file_path = Path(TEMP_SCORE)
-    if file_path.exists():
-        with open(file_path, 'r') as f:
-            return int(f.read())
-    else:
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, 'w') as f:
-            f.write("0")
-        return 0
+# def load_temp_score() -> int:
+#     file_path = Path(TEMP_SCORE)
+#     if file_path.exists():
+#         with open(file_path, 'r') as f:
+#             return int(f.read())
+#     else:
+#         file_path.parent.mkdir(parents=True, exist_ok=True)
+#         with open(file_path, 'w') as f:
+#             f.write("0")
+#         return 0
 
 
-def update_temp_score(score: int) -> None:
-    with open(TEMP_SCORE, 'w') as f:
-        f.write(str(score))
+# def update_temp_score(score: int) -> None:
+#     with open(TEMP_SCORE, 'w') as f:
+#         f.write(str(score))
 
 
-def delete_temp_score() -> None:
-    file_path = Path(TEMP_SCORE)
-    os.remove(TEMP_SCORE)
-    os.rmdir(file_path.parent)
+# def delete_temp_score() -> None:
+#     file_path = Path(TEMP_SCORE)
+#     os.remove(TEMP_SCORE)
+#     os.rmdir(file_path.parent)

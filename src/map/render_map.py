@@ -465,8 +465,6 @@ class RenderMap:
         self._draw_pacgums(screen)
         self._draw_super_pellets(screen)
         pacman = self.map.pacman
-        for gum in self.map.pacgums:
-            gum.detector(pacman)
         for ghost in self.map.ghosts:
             ghost.behaviour(dt, pacman)
         self._draw_ghosts(screen)

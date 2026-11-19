@@ -43,7 +43,7 @@ class GameMenu:
     title : str
         Title of the current screen.
     current : str
-        Name of the current screen (``"main"``, ``"config"``, ``"score"``).
+        Name of the current screen (``"main"``, `load_highscores`"config"``, ``"score"``).
     instructions : Instructions
         Scrollable instructions content.
     """
