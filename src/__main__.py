@@ -5,7 +5,7 @@ from src.core.engine import Engine
 from .entities import Player
 
 CONFIG_PATH = "config.json"
-HIGHSCORE_PATH = "data/highscores.json"
+
 
 
 if __name__ == "__main__":

@@ -5,10 +5,10 @@ from .player import Highscores, Player
 from pathlib import Path
 
 TEMP_SCORE = "data/temp/score.txt"
+HIGHSCORE_PATH = "data/highscores.json"
 
-
-def load_highscores(path: str) -> Highscores:
-    file_path = Path(path)
+def load_highscores() -> Highscores:
+    file_path = Path(HIGHSCORE_PATH)
     if file_path.exists():
         with open(file_path, 'r', encoding="utf-8") as f:
             highscores = json.load(f)
