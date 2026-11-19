@@ -15,8 +15,8 @@ class Collisions:
 class CollisionSystem:
     """Detect new ghost contacts and uneaten pacgums in map-cell units."""
 
-    GHOST_DISTANCE = 0.5
-    PACGUM_DISTANCE = 0.3
+    GHOST_DISTANCE = 0.4
+    PACGUM_DISTANCE = 0.2
 
     def __init__(self) -> None:
         self._touching_ghosts: set[Ghost] = set()
