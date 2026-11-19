@@ -11,7 +11,6 @@ from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
 from src.entities.models import Game
-from src.entities import load_temp_score, delete_temp_score
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
 
 
@@ -77,7 +76,7 @@ class Engine:
             "exit": self.exit_app,
             "set_option": self.set_option,
             "save_score": self.save_score,
-            "get_scores": self.get_scores,
+            "get_scores": load_highscores,
             "return_to_main": self.return_to_main,
             "resume": self.resume,
         }
@@ -98,8 +97,6 @@ class Engine:
         self._config()
         self._update()
         self._finish()
-        self.score = load_temp_score()
-        delete_temp_score()
 
     def _init(self) -> None:
         """Load graphics, and assets."""
@@ -162,10 +159,10 @@ class Engine:
         pass
 
     def save_score(self, name: str, score: int) -> None:
-        save_highscore(self.highscore_path, name, score)
+        save_highscore(name, score)
 
     def get_scores(self) -> list[str]:
-        scores = load_highscores(self.highscore_path).players
+        scores = load_highscores().players
         return [f"{player.name}       {player.score}"
                 for player in sorted(scores, key=lambda p: p.score,
                                      reverse=True)[:10]]

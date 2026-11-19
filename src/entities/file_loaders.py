@@ -5,6 +5,7 @@ from .player import Highscores, Player
 from pathlib import Path
 
 TEMP_SCORE = "data/temp/score.txt"
+HIGHSCORE_PATH = "data/highscores.json"
 
 
 def load_highscores(path: str) -> Highscores:
