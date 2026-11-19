@@ -55,6 +55,16 @@ class Game(BaseModel):
     points_per_super_pacgum: int = Field(ge=0)
     points_per_ghost: int = Field(ge=0)
 
+
+class Player(BaseModel):
+    name: str = Field(min_length=2)
+    score: int = Field(default=0, ge=0)
+
+
+class Highscores(BaseModel):
+    players: list[Player]
+
+
 # TODO  Dina.job ADD:
 #   ^ limit_time_per_level pydantic
 #   ^ Fix points for supergums
