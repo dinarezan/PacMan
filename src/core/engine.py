@@ -8,13 +8,10 @@ from src.entities.file_loaders import load_highscores, save_highscore
 from src.states.game_menu import GameMenu
 from src.graphics.asset_manager import AssetManager
 from src.graphics.hud import Hud
+from src.graphics.read_screen import read_screen_size
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
-from src.entities.models import Game
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
-
-
-# TODO Read screen size
 
 
 class Engine:
@@ -41,28 +38,28 @@ class Engine:
     """
 
 
-    # TODO ADD function to read screen size
-    SCREEN_SIZE = (1880, 1260)
-    # SCREEN_SIZE = (480, 660)
     BACKGROUND = (10, 10, 10)
-    RESPAWN_DELAY = 0.8
+    RESPAWN_DELAY = 1.0
 
-    def __init__(self, config: Game,
-                 highscore_path: str = str(Path("data") / "highscores.json")):
+    # def __init__(self, config,
+    #                  highscore_path: str = str(Path("data") / "highscores.json")):
+    def __init__(self, config,
+                 highscore_path: str = ""):
         pygame.init()
         self.font = pygame.font.Font(None, 32)
         self.title_font = pygame.font.Font(None, 48)
-        self.screen = pygame.display.set_mode(self.SCREEN_SIZE)
+        self.screen = pygame.display.set_mode(read_screen_size())
+        self.SCREEN_SIZE = self.screen.get_size()
         self.clock = pygame.time.Clock()
         self.speed = 1.0
         self.config = config
+        self.highscore_path = highscore_path
         self.score = 0
         self.running = False
         self.pause = True
         self.game_active = False
         self.option: int | None = None
         self.renderer: RenderMap | None = None
-        self.highscore_path = highscore_path
         self.respawn_remaining = 0.0
 
     # -- Init stuff ----------------------------------------------------
@@ -76,7 +73,7 @@ class Engine:
             "exit": self.exit_app,
             "set_option": self.set_option,
             "save_score": self.save_score,
-            "get_scores": load_highscores,
+            "get_scores": self.get_scores,
             "return_to_main": self.return_to_main,
             "resume": self.resume,
         }
@@ -108,8 +105,25 @@ class Engine:
             print("No more levels")
             return
         print("Running the game")
-        #level = self.config.levels.pop(0)   # ? LEVEL SHOULD HANDLE LEVEL STYLE
-        level = self.config.levels[0]
+        self.renderer = self._create_renderer(0)
+        self.gameplay = Gameplay(
+            renderer=self.renderer,
+            level=1,
+            points=0,
+            max_time=self.config.levels[0].max_time,
+            lives=self.config.lives,
+            points_per_pacgum=self.config.points_per_pacgum,
+            points_per_super_pacgum=self.config.points_per_super_pacgum,
+            ghosts_points=self.config.points_per_super_pacgum,
+            )
+        self.pause = False
+        self.game_active = True
+        self.score = 0
+        self.respawn_remaining = 0.0
+        self._menu.change_menu("pause")
+
+    def _create_renderer(self, level_index: int) -> RenderMap:
+        level = self.config.levels[level_index]
         game_map = Map(
             size=(level.width, level.height),
             seed=level.seed,
@@ -122,27 +136,25 @@ class Engine:
         # print("level:\n", game_map.maze)
         width, height = self.SCREEN_SIZE
         map_area = (width, height - Hud.TOP_HEIGHT - Hud.BOTTOM_HEIGHT)
-        self.renderer = RenderMap(game_map, self.assets, map_area,
-                                  origin=(0, Hud.TOP_HEIGHT),
-                                  screen_size=self.SCREEN_SIZE)
-        self.renderer.load_map()
-        self.renderer.start_reveal(1.5)
-        self.gameplay = Gameplay(
-            renderer=self.renderer,
-            level=1,
-            lives=3,
-            points=0,
-            max_time=90,
-            pacgum_points=self.config.points_per_pacgum,
-            ghosts_points=self.config.points_per_super_pacgum,
-            )
-        # super_points=self.config.points_per_pacgum,  # ! Not works
-        # max_time=self.config.limit_time_per_level
-        self.pause = False
-        self.game_active = True
-        self._menu.change_menu("pause")
-        self.score = 0
-        self.respawn_remaining = 0.0
+        renderer = RenderMap(game_map, self.assets, map_area,
+                             origin=(0, Hud.TOP_HEIGHT),
+                             screen_size=self.SCREEN_SIZE)
+        renderer.load_map()
+        renderer.start_reveal(1.5)
+        return renderer
+
+    def _advance_level(self) -> None:
+        next_index = self.gameplay.current_level
+        if next_index >= len(self.config.levels):
+            self.score = self.gameplay.points
+            self.pause = True
+            self.game_active = False
+            self._menu.show_victory(self.score)
+            return
+        renderer = self._create_renderer(next_index)
+        self.gameplay.advance_level(
+            renderer, self.config.levels[next_index].max_time)
+        self.renderer = renderer
 
     def set_option(self, value: int) -> None:
         """Store the value chosen in the configuration menu."""
@@ -159,11 +171,11 @@ class Engine:
         pass
 
     def save_score(self, name: str, score: int) -> None:
-        save_highscore(name, score)
+        save_highscore(self.highscore_path, name, score)
 
     def get_scores(self) -> list[str]:
-        scores = load_highscores().players
-        return [f"{player.name}       {player.score}"
+        scores = load_highscores(self.highscore_path).players
+        return [f"{player.name}    {player.score}"
                 for player in sorted(scores, key=lambda p: p.score,
                                      reverse=True)[:10]]
 
@@ -175,11 +187,11 @@ class Engine:
         self._menu.change_menu("main")
 
     def resume(self) -> None:
-        """ Reusme the active game without restarting ti"""
+        """Resume the active game without restarting it."""
         if self.game_active:
             self.pause = False
 
-    # ! -- MAIN LOOP --------------------------------------------------
+    # ----  MAIN LOOP ----------------------------------------------------
     def _update(self) -> None:
         """Main loop: events, logic, drawing (in this order)."""
         while self.running:
@@ -202,10 +214,13 @@ class Engine:
             self._menu.update()
         elif self.respawn_remaining > 0:
             self.respawn_remaining = max(0.0, self.respawn_remaining - dt)
-            print("RESPAWN: ", self.respawn_remaining)
         elif self.renderer:
             self.renderer.update(dt)
             if self.gameplay:
+                if (self.renderer.game_init and not self.renderer.revealing
+                        and self.gameplay.level_complete):
+                    self._advance_level()
+                    return
                 self.gameplay.update(dt)
                 if self.gameplay.life_lost:
                     if self.gameplay.game_over:
@@ -216,6 +231,9 @@ class Engine:
                     else:
                         self.gameplay.reset_positions()
                         self.respawn_remaining = self.RESPAWN_DELAY
+                elif (self.renderer.game_init and not self.renderer.revealing
+                      and self.gameplay.level_complete):
+                    self._advance_level()
 
     def draw(self, dt: float) -> None:
         """Clear the screen, draw the active state and present the frame.
@@ -226,10 +244,9 @@ class Engine:
         """
         self.screen.fill((0, 0, 0) if self.respawn_remaining > 0
                          and not self.pause else self.BACKGROUND)
-        #self.screen.fill(self.BACKGROUND)
         if self.pause:
             self._menu.draw(self.screen)
-        elif self.renderer and self.respawn_remaining <= 0:
+        elif self.respawn_remaining <= 0 and self.renderer:
             self.renderer.draw(self.screen, dt)
             if self.gameplay:
                 self.gameplay.draw(self.screen)
@@ -240,24 +257,22 @@ class Engine:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-            #elif self.respawn_remaining > 0 and not self.pause:
-            #    continue
+            elif self.respawn_remaining > 0 and not self.pause:
+                continue
             elif self.pause:
-            # * -------------------------- CONTROL GAMING
                 if (event.type == pygame.KEYDOWN
-                    and event.key in (pygame.K_ESCAPE, pygame.K_p,
-                                      pygame.K_SPACE)
-                    and self._menu.current == "pause"):
+                        and event.key in (pygame.K_ESCAPE, pygame.K_p,
+                                          pygame.K_SPACE)
+                        and self._menu.current == "pause"):
                     self.resume()
                 else:
                     self._menu.handle_event(event)
             elif (event.type == pygame.KEYDOWN
-                    and event.key in (pygame.K_ESCAPE, pygame.K_p,
-                                      pygame.K_SPACE)
-                    and self._menu.current == "pause"):
-                        self.pause = True
-            # * --  Pac-man control  ----------------------------------
-            if not self.pause:
+                  and event.key in (pygame.K_ESCAPE, pygame.K_p,
+                                    pygame.K_SPACE)):
+                self.pause = True
+                self._menu.show_pause(self.gameplay.points)
+            else:
                 self.gameplay.handle_event(event)
 
     def _finish(self) -> None:

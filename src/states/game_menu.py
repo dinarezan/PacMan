@@ -11,12 +11,12 @@ from src.states.instructions import Instructions
 
 class GameMenu:
     """e
-    Menu state: main, configuration, highest-score, game-over, pause
-    and instructions screens.
+    Menu state: main, configuration, highest-score, instructions, pause and
+    game-over screens.
 
     Keyboard: Up/Down select (or scroll on the instructions screen),
-    Enter presses the selected button, Backspace goes back to the main
-    menu from any other screen.
+    Enter presses the selected button, Backspace returns to the previous
+    menu or resumes the game from pause.
 
     Parameters
     ------------------------------------------
@@ -28,10 +28,10 @@ class GameMenu:
         Font for the screen title.
     functions : dict of str to callable
         Callbacks provided by the game. Required keys: ``"start"`` and
-        ``"exit"``. Pause uses ``"resume""`` and optionalle ``"get_score"``
+        ``"exit"``. Pause uses ``"resume"`` and optionally ``"get_scores"``.
         Optional key: ``"set_option"``, called with the value
         chosen in the configuration menu.
-        Game-over screebs also use ``"save_score"``, ``"return_to+main"``
+        Game-over screens also use ``"save_score"``, ``"return_to_main"``
         and ``"start"``.
     scores : list of str, optional
         Lines shown in the highest-score screen.
@@ -43,7 +43,7 @@ class GameMenu:
     title : str
         Title of the current screen.
     current : str
-        Name of the current screen (``"main"``, `load_highscores`"config"``, ``"score"``).
+        Name of the current screen (``"main"``, ``"config"``, ``"score"``).
     instructions : Instructions
         Scrollable instructions content.
     """
@@ -64,7 +64,6 @@ class GameMenu:
         self.functions = functions
         self.font = font
         self.title_font = title_font
-        # -- Score -------
         self.scores = scores if scores is not None else []
         self.score_status = ""
         self.pause_score = 0
@@ -72,7 +71,6 @@ class GameMenu:
         self.final_score = 0
         self.player_name = ""
         self.game_over_status = ""
-        # -- Design ------
         self.normal, self.active = self._make_images()
         self.normal, self.active = self._make_images()
         self.footer_y = self.HEIGHT - self.BUTTON_SIZE[1] - self.FOOTER_MARGIN
@@ -115,7 +113,7 @@ class GameMenu:
     def _make_main_menu(self) -> Menu:
         """Build the main menu."""
         return self._new_menu(
-            ["Start", "Instructions", "Configuration", "Highest Score",
+            ["Start", "instructions", "Configuration", "Highest Score",
              "Exit"],
             [self.functions["start"],
              lambda: self.change_menu("instructions"),
@@ -146,16 +144,16 @@ class GameMenu:
         )
 
     def _make_instructions_menu(self) -> Menu:
-        """Build the instructions menu."""
+        """Build the instructions menu (a Return button in the footer)."""
         return self._new_menu(
             ["Return"],
-            [lambda: self.change_menu("self.instructions_return")],
+            [lambda: self.change_menu(self.instructions_return)],
             y=self.footer_y,
             title_case=False,
         )
 
     def _make_pause_menu(self) -> Menu:
-        """Build the pause menu (a Return button in the footer)."""
+        """Build the pause menu."""
         return self._new_menu(
             ["Return", "Instructions", "Exit"],
             [self.functions["resume"],
@@ -167,7 +165,7 @@ class GameMenu:
 
     def _make_game_over_menu(self) -> Menu:
         return self._new_menu(
-            ["Save Score", "Restart", " Return"],
+            ["Save score", "Restart", "Return"],
             [self._save_score, self.functions["start"],
              self.functions["return_to_main"]],
             y=320,
@@ -180,19 +178,23 @@ class GameMenu:
         self.game_over_status = ""
         self.change_menu("game_over")
 
+    def show_victory(self, score: int) -> None:
+        self.show_game_over(score)
+        self.title = "Victory!"
+
     def show_pause(self, score: int) -> None:
         self.pause_score = score
         self.change_menu("pause")
 
     def _save_score(self) -> None:
         name = self.player_name.strip()
-        if len(name) < 3:
-            self.game_over_status = "Name must have at least 3 characters."
+        if len(name) < 2:
+            self.game_over_status = "Name must have at least 2 characters."
             return
         try:
             self.functions["save_score"](name, self.final_score)
         except (OSError, ValueError) as error:
-            self.game_over_status = f"Could not save score 😢: {error}"
+            self.game_over_status = f"Could not save score: {error}"
             return
         self.game_over_status = "Score saved."
 
@@ -206,11 +208,10 @@ class GameMenu:
 
     def change_menu(self, name: str) -> None:
         """Replace the displayed menu by the one registered as `name`."""
-        if name == "Instructions":
+        if name == "instructions":
             self.instructions_return = (
                 "pause" if getattr(self, "current", None) == "pause"
-                else "main"
-            )
+                else "main")
         if getattr(self, "current", None) == "game_over":
             pygame.key.stop_text_input()
         self.current = name
@@ -239,7 +240,7 @@ class GameMenu:
         """
         if self.current == "game_over":
             if event.type == pygame.TEXTINPUT:
-                if event.text_isprintable():
+                if event.text.isprintable():
                     self.player_name = (self.player_name + event.text)[:24]
                     self.game_over_status = ""
                 return True
@@ -295,6 +296,9 @@ class GameMenu:
             text = self.font.render(line, True, self.SCORE_COLOR)
             surface.blit(text, text.get_rect(center=(self.WIDTH // 2, y)))
             y += 30
+        if self.score_status:
+            text = self.font.render(self.score_status, True, self.SCORE_COLOR)
+            surface.blit(text, text.get_rect(center=(self.WIDTH // 2, y)))
 
     def _draw_game_over(self, surface: pygame.Surface) -> None:
         for y, line in ((140, f"Score: {self.final_score}"),
@@ -307,11 +311,10 @@ class GameMenu:
         score = self.title_font.render(f"Score: {self.pause_score}", True,
                                        self.TITLE_COLOR)
         surface.blit(score, score.get_rect(center=(self.WIDTH // 2, 120)))
-        lines = ["Top 3 Players", *self.scores[:3]]
+        lines = ["Top 3 players", *self.scores[:3]]
         if self.score_status:
             lines.append(self.score_status)
         for index, line in enumerate(lines):
             text = self.font.render(line, True, self.SCORE_COLOR)
             surface.blit(text, text.get_rect(
-                center=(self.WIDTH // 2, 170 + index * 30)
-            ))
+                center=(self.WIDTH // 2, 170 + index * 30)))

@@ -8,8 +8,8 @@ TEMP_SCORE = "data/temp/score.txt"
 HIGHSCORE_PATH = "data/highscores.json"
 
 
-def load_highscores(path: str) -> Highscores:
-    file_path = Path(path)
+def load_highscores() -> Highscores:
+    file_path = Path(HIGHSCORE_PATH)
     if file_path.exists():
         with open(file_path, 'r', encoding="utf-8") as f:
             highscores = json.load(f)
@@ -20,17 +20,14 @@ def load_highscores(path: str) -> Highscores:
             pass
         return Highscores(players=[])
 
-
 def load_config(path: str) -> Game:
     with open(path, 'r') as f:
         config = json.load(f)
     game = Game(**config)
     return game
 
-
-
-def save_highscore(name: str, score: int) -> None:
-    highscores = load_highscores(HIGHSCORE_PATH)
+def save_highscore(ame: str, score: int) -> None:
+    highscores = load_highscores()
     player = name
     Player(name=player)
 

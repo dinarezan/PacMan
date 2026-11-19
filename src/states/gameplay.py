@@ -2,11 +2,11 @@ from __future__ import annotations
 import pygame
 
 from typing import Any
-from math   import ceil
 import time
+from math import ceil
+from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
-from src.core.collisions import Collisions, CollisionSystem
 
 
 class Gameplay:
@@ -48,10 +48,9 @@ class Gameplay:
                  points: int = 0,
                  max_time: float = 90,
                  curr_time: float = 0,
-                 pacgum_points: int = 10,
-                 super_points: int = 50,
-                 ghosts_points: int = 200,
-                ):
+                 points_per_pacgum: int = 10,
+                 points_per_super_pacgum: int = 50,
+                 ghosts_points: int = 200):
         self.renderer = renderer
         self.hud = Hud(renderer.assets)
         self.lives = max(0, min(self.MAX_LIVES, lives))
@@ -63,19 +62,34 @@ class Gameplay:
         self.max_time = float(max_time)
         self.time_left = self.max_time
         self.time_up = False
-        #self.time: int = time
-
-    # -- Points ----------------------------------
-        self.points_per_pacgum = pacgum_points
-        self.points_per_super_pacgum = super_points
+        self.points_per_pacgum = points_per_pacgum
+        self.points_per_super_pacgum = points_per_super_pacgum
         self.points_per_ghost = ghosts_points
         self.collisions = CollisionSystem()
         self.life_lost = False
+        #self.time: int = time
 
     @property
     def game_over(self) -> bool:
         """True when no lives are left."""
         return self.lives <= 0
+
+    @property
+    def level_complete(self) -> bool:
+        """True when all normal and super pacgums have been collected."""
+        game_map = self.renderer.map
+        return (all(gum.eaten for gum in game_map.pacgums)
+                and all(gum.eaten for gum in game_map.super_pacgums))
+
+    def advance_level(self, renderer: RenderMap, max_time: float) -> None:
+        """Switch maps while preserving the player's accumulated progress."""
+        self.renderer = renderer
+        self.current_level += 1
+        self.max_time = float(max_time)
+        self.curr_time = 0
+        self.reset_time()
+        self.collisions = CollisionSystem()
+        self.life_lost = False
 
     def add_points(self, amount: int) -> None:
         """Add `amount` to the score."""
@@ -131,7 +145,7 @@ class Gameplay:
 
     def update(self, dt: float) -> None:
         """
-        Advance the timers.
+        Advance the timers and active gameplay.
 
         Nothing runs until the intro animation has finished
         (``renderer.game_init``) or after game over. The Engine does not
@@ -154,28 +168,28 @@ class Gameplay:
         game_map = self.renderer.map
         max_speed = max([game_map.pacman.speed]
                         + [ghost.speed for ghost in game_map.ghosts])
-
         steps = max(1, ceil(max_speed * dt / 0.1))
         step_dt = dt / steps
-        self._check_collisions()
+        if self._check_collisions():
+            return
         for _ in range(steps):
-            if self.game_over:
+            if self.life_lost:
                 break
             for ghost in game_map.ghosts:
                 ghost.behaviour(step_dt, game_map.pacman)
-                game_map.pacman.update_position(step_dt, game_map.maze)
-                self._check_collisions()
+            game_map.pacman.update_position(step_dt, game_map.maze)
+            if self._check_collisions():
+                break
         #if self.power_up_left is not None:
         #    self.power_up_left -= dt
         #    if self.power_up_left <= 0:
         #        self.clear_power_up()
 
-    def _check_collisions(self) -> None:
+    def _check_collisions(self) -> bool:
         game_map = self.renderer.map
         contacts = self.collisions.check(
             game_map.pacman, game_map.ghosts, game_map.pacgums,
-            game_map.super_pacgums
-        )
+            game_map.super_pacgums)
         for gum in contacts.pacgums:
             gum.eaten = True
             self.add_points(self.points_per_pacgum)
@@ -185,6 +199,8 @@ class Gameplay:
         if contacts.ghosts:
             self.lose_life()
             self.life_lost = True
+        return bool(contacts.pacgums or contacts.super_pacgums) \
+            and self.level_complete
 
     def reset_positions(self) -> None:
         game_map = self.renderer.map
