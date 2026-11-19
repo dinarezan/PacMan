@@ -3,6 +3,7 @@ import pygame
 import colorsys
 import random
 from typing import Any
+from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
 from src.entities.map import Map
 from src.graphics.animation import SpriteAnimation
@@ -35,8 +36,7 @@ class RenderMap:
           optional ``kind`` (``"dot"``, ``"power"``, ``"fruit"``,
           ``"power-up"``, or any file name in ``assets/sprites``).
         - ``ghosts``: iterable of items with ``position`` and optional
-          ``frightened`` (bool) and ``hue`` (degrees, to color-shift the
-          ghost sprite).
+          ``frightened`` (bool), ``color`` (Colors), or ``hue`` (degrees).
 
         A ``position`` is ``(column, row)`` in cell units and may be a
         float for smooth movement. A plain ``(column, row)`` tuple is
@@ -84,7 +84,7 @@ class RenderMap:
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     KIND_SPRITES = {
         "dot": "pac-dots",
-        "super": "donut",
+        "power": "donut",
         "fruit": "cherry",
         "power-up": "coffee",
     }
@@ -142,6 +142,7 @@ class RenderMap:
         self._bg_screen: pygame.Surface | None = None   # bg tiles only
         self._static: pygame.Surface | None = None      # bg + maze
         self._sprites: dict[tuple[str, float], pygame.Surface] = {}
+        self._ghost_images: dict[Colors, pygame.Surface] = {}
         self._shadows: dict[tuple[int, int], pygame.Surface] = {}
         self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
         self._pacman_images: dict[tuple[str, int | None],
@@ -224,12 +225,10 @@ class RenderMap:
         self._blob_next = 0
         self._active_blobs: list[tuple[float, int, int, float]] = []
         self._dots: list[tuple[str, Any, float]] = []
-        self._supers: list[tuple[str, Any, float]] = []
         self._ghosts: list[tuple[Any, Any, float]] = []
         self._pacman: Any = None
         self._pacman_time = 0.0
         self._t_dots = self._t_ghosts = self._t_end = 0.0
-        self._t_supers = self._t_ghosts = self._t_end = 0.0
 
     def start_reveal(self, draw_time: float = 1.2,
                      color_time: float = 1.2) -> None:
@@ -306,14 +305,6 @@ class RenderMap:
             delay = wave * self.DOT_WAVE_TIME + rng.uniform(
                 0, self.DOT_JITTER)
             self._dots.append((name, (x, y), delay))
-        for item in getattr(self.map, "super_pacgums", ()):
-            x, y = getattr(item, "position", item)
-            name = self.KIND_SPRITES.get(getattr(item, "kind", "super"),
-                                         getattr(item, "kind", "super"))
-            wave = max(0.0, min(1.0, (x + y) / span))
-            delay = wave * self.DOT_WAVE_TIME + rng.uniform(
-                0, self.DOT_JITTER)
-            self._supers.append((name, (x, y), delay))
         for index, ghost in enumerate(getattr(self.map, "ghosts", ())):
             self._ghosts.append((ghost, getattr(ghost, "position", ghost),
                                  index * self.GHOST_STAGGER))
@@ -464,12 +455,7 @@ class RenderMap:
         screen.blit(self._static, (0, 0))
         self._draw_pacgums(screen)
         self._draw_super_pellets(screen)
-        pacman = self.map.pacman
-        for ghost in self.map.ghosts:
-            ghost.behaviour(dt, pacman)
         self._draw_ghosts(screen)
-        if self.game_init:
-            pacman.update_position(dt, self.map.maze)
         self._draw_pacman(screen)
         #self._draw_shadows(screen)
 
@@ -505,16 +491,6 @@ class RenderMap:
                               1.0 - min(height / drop, 0.7))
             dots.append((sprite, position, height))
 
-        supers = []
-        for name, position, delay in self._supers:
-            elapsed = t - self._t_supers - delay
-            if elapsed < 0:
-                continue
-            height = self._bounce(elapsed, drop)
-            sprite = self._sprite(name)
-            self._draw_shadow(screen, position, sprite,
-                              1.0 - min(height / drop, 0.7))
-            supers.append((sprite, position, height))       
         ghosts = []
         for ghost, position, delay in self._ghosts:
             elapsed = t - self._t_ghosts - delay
@@ -529,8 +505,6 @@ class RenderMap:
             ghosts.append((sprite, position, height))
 
         for sprite, position, height in dots:
-            self._blit(screen, sprite, position, lift=height)
-        for sprite, position, height in supers:
             self._blit(screen, sprite, position, lift=height)
         if self._pacman is not None and t >= self._pacman_time:
             self._draw_pacman(screen)
@@ -570,21 +544,9 @@ class RenderMap:
     def _draw_pacgums(self, screen: pygame.Surface) -> None:
         """Draw dots, power pellets, fruit and power-ups."""
         for item in getattr(self.map, "pacgums", ()):
-            if item.eaten:
+            if getattr(item, "eaten", False):
                 continue
             kind = getattr(item, "kind", "dot")
-            sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
-            self._draw_shadow(screen, getattr(item, "position", item),
-                              sprite, strength=0.7)
-            self._blit(screen, sprite,
-                       getattr(item, "position", item))
-
-    def _draw_super_pellets(self, screen: pygame.Surface) -> None:
-        """Draw Superpellets on the corners"""
-        for item in getattr(self.map, "super_pacgums", ()):
-            if item.eaten:
-                continue
-            kind = getattr(item, "kind", "super")
             sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
             self._draw_shadow(screen, getattr(item, "position", item),
                               sprite, strength=0.7)
@@ -596,9 +558,16 @@ class RenderMap:
         for ghost in getattr(self.map, "ghosts", ()):
             self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
                               self._ghost_sprite(ghost))
-            #if ghost.color
             self._blit(screen, self._ghost_sprite(ghost),
                        getattr(ghost, "map_pos", ghost))
+
+    def _draw_super_pellets(self, screen: pygame.Surface) -> None:
+        """Draw uneaten super pacgums."""
+        for item in getattr(self.map, "super_pacgums", ()):
+            if not item.eaten:
+                sprite = self._sprite(self.KIND_SPRITES["power"])
+                self._draw_shadow(screen, item.position, sprite, strength=0.7)
+                self._blit(screen, sprite, item.position)
 
     def _draw_power_ups(self, screen: pygame.Surface) -> None:
         """Draw power ups on the map"""
@@ -638,7 +607,22 @@ class RenderMap:
     def _ghost_sprite(self, ghost: Any) -> pygame.Surface:
         if getattr(ghost, "frightened", False):
             return self._sprite(self.FRIGHTENED_SPRITE)
-        return self._sprite(self.GHOST_SPRITE, getattr(ghost, "hue", 0.0))
+        color = getattr(ghost, "color", None)
+        if color is None:
+            return self._sprite(self.GHOST_SPRITE, getattr(ghost, "hue", 0.0))
+        if color == Colors.RED:
+            return self._sprite(self.GHOST_SPRITE)
+        if not isinstance(color, Colors) or color not in GHOST_COLOR_ADJUSTMENTS:
+            raise ValueError(f"Unsupported ghost color: {color!r}")
+        sprite = self._ghost_images.get(color)
+        if sprite is None:
+            hue, saturation, luminosity = GHOST_COLOR_ADJUSTMENTS[color]
+            sprite = tint_surface(self._sprite(self.GHOST_SPRITE),
+                                  hue=hue,
+                                  saturation=1.0 + saturation / 100,
+                                  luminosity=1.0 + luminosity / 100)
+            self._ghost_images[color] = sprite
+        return sprite
 
     def _sprite(self, name: str, hue: float = 0.0) -> pygame.Surface:
         """Return a sprite scaled for this map (cached; optional tint)."""

@@ -3,7 +3,8 @@ from abc import ABC, abstractmethod
 from typing import Callable, Any
 from math import hypot, dist
 import random
-from .pacman import PacMan
+from src.entities.pacman import PacMan
+from src.graphics.graphic_data import Colors
 
 
 class State(Enum):
@@ -29,7 +30,7 @@ def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tup
     neighbours = []
     i = 0
     for neighbour in [n, e, s, w]:
-        if neighbour == 0: #open pass, no wall
+        if neighbour == 0:  #open pass, no wall
             cell = tuple(map(sum, zip(position, directions[i])))
             x, y = cell
             if x < 0 or y < 0 or x >= len(maze[0]) or y >= len(maze):
@@ -40,13 +41,14 @@ def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tup
 
 
 class Ghost(ABC):
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 1):
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 speed: float = 1, points: int = 200):
         self.spawn_pos = pos
         self.position: tuple[int, int] = pos
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
-        self.speed: int = speed #cells per s
-        self.color: Color
+        self.speed: float = speed #cells per s
+        self.color: Colors
         self._maze: list[list[int]] = maze
 
     def reset_position(self) -> None:
@@ -133,11 +135,12 @@ class Ghost(ABC):
 
 
 class Blinky(Ghost):
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 0.9, chase_rad: int = 1):
-        super().__init__(pos, maze, speed)
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 speed: float = 0.9, chase_rad: int = 1, points: int = 200):
+        super().__init__(pos, maze, speed, points)
         self.state: State = State.CHASE
         self._chase_radius: int = chase_rad
-        self.color: Color
+        self.color: Colors = Colors.RED
         self._rand_target = self._generate_random_target()
         random.seed()
 
@@ -160,11 +163,12 @@ class Blinky(Ghost):
 
 
 class Pinky(Ghost):
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]], speed: int = 0.9, chase_rad: int = 5):
-        super().__init__(pos, maze, speed)
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 speed: float = 0.9, chase_rad: int = 5, points: int = 200):
+        super().__init__(pos, maze, speed, points)
         self.state: State = State.CHASE
         self._chase_radius: int = chase_rad
-        self.color: Color
+        self.color: Colors = Colors.PINK
         random.seed()
 
     def _intercept_target(self, dt: float, pacman: PacMan) -> None:
@@ -180,7 +184,6 @@ class Pinky(Ghost):
             self._intercept_target(dt, pacman)
 
 
-
 class GhostFactory:
     registry: dict[str, type[Ghost]] = {
         "blinky": Blinky,
@@ -193,5 +196,5 @@ class GhostFactory:
             name = g.get("name")
             pos = g.get("position")
             ghost = self.registry.get(name)
-            ghosts.append(ghost(pos, maze))
+            ghosts.append(ghost(pos, maze, points=points))
         return ghosts
