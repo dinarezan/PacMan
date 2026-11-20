@@ -51,10 +51,11 @@ class GameMenu:
     # TODO make adaptative size in base the main size
     # ? I Have not idea how to do this ^ 😢
     BUTTON_SIZE = (220, 56)
-    FOOTER_MARGIN = 24
+    FOOTER_MARGIN = 124
     # ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
     TITLE_COLOR = (0, 220, 0)
     SCORE_COLOR = (120, 120, 120)
+    #BOTTOM_PADDIN = 80
 
     def __init__(self, size: tuple[int, int], font: Any, title_font: Any,
                  functions: dict[str, Callable[..., Any]],

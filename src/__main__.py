@@ -1,8 +1,7 @@
-from .entities import load_config, load_highscores
 import json
+from src.entities.file_loaders import load_config
 from pydantic import ValidationError
 from src.core.engine import Engine
-from .entities import Player
 
 CONFIG_PATH = "config.json"
 

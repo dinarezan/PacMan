@@ -80,32 +80,32 @@ class SpriteAnimation:
         self.elapsed = 0.0
 
 
-class GhostSprites:
-    """
-    Update the ghost sprite for each moment.
+#class GhostSprites:
+#    """
+#    Update the ghost sprite for each moment.
     
-    """
-    def __init__(self, sprites: dict[Any]) -> any:   # Add dict with images and the states.
-        if not sprites:
-            raise ValueError("An animation needs at least one frame")
-        if any(seconds <= 0 for _, seconds in frames):
-            raise ValueError("Frame durations must be greater than zero")
-        self.sprites =  dict(sprites)
-        self.duration = sum(seconds for _, seconds in self.frames)
-        self.elapsed = 0.0
-        self.state: State
-        self.effect
-        self.direction: int
+#    """
+#    def __init__(self, sprites: dict[Any]) -> any:   # Add dict with images and the states.
+#        if not sprites:
+#            raise ValueError("An animation needs at least one frame")
+#        if any(seconds <= 0 for _, seconds in frames):
+#            raise ValueError("Frame durations must be greater than zero")
+#        self.sprites =  dict(sprites)
+#        self.duration = sum(seconds for _, seconds in self.frames)
+#        self.elapsed = 0.0
+#        self.state: State
+#        self.effect
+#        self.direction: int
 
-    @property
-    def sprite(self) -> str:
-        """ Return the correct sprites """
+#    @property
+#    def sprite(self) -> str:
+#        """ Return the correct sprites """
 
-    def update_sprite(self, ghost: Ghost) -> None:
+#    def update_sprite(self, ghost: Ghost) -> None:
 
 
-    def frightered(self) -> None:
-        """ Use frightered-body"""
+#    def frightered(self) -> None:
+#        """ Use frightered-body"""
 
 
         

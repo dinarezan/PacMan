@@ -7,6 +7,7 @@ from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
 from src.entities.map import Map
 from src.graphics.animation import SpriteAnimation
+from src.entities.ghost import Ghost
 
 
 class RenderMap:
@@ -80,7 +81,7 @@ class RenderMap:
             ("pacman2", 0.05),
         )
     PACMAN_ROTATION = {0: 270, 1: 0, 2: 90, 3: 180}
-    GHOST_SPRITE = "ghost"
+    GHOST_SPRITE = "body"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     KIND_SPRITES = {
         "dot": "pac-dots",
@@ -143,6 +144,8 @@ class RenderMap:
         self._static: pygame.Surface | None = None      # bg + maze
         self._sprites: dict[tuple[str, float], pygame.Surface] = {}
         self._ghost_images: dict[Colors, pygame.Surface] = {}
+        self._ghost_composites: dict[tuple[pygame.Surface, int],
+                                     pygame.Surface] = {}
         self._shadows: dict[tuple[int, int], pygame.Surface] = {}
         self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
         self._pacman_images: dict[tuple[str, int | None],
@@ -609,9 +612,22 @@ class RenderMap:
             self._pacman_images[key] = image
         return image
 
-    def _ghost_sprite(self, ghost: Any) -> pygame.Surface:
+    def _ghost_sprite(self, ghost: Ghost) -> pygame.Surface:
         if getattr(ghost, "frightened", False):
             return self._sprite(self.FRIGHTENED_SPRITE)
+        eyes = getattr(ghost, "eyes", 4)
+        if not isinstance(eyes, int) or not 0 <= eyes <= 4:
+            raise ValueError(f"Unsupported ghost eyes yet!: {eyes!r}")
+        body = self._ghost_body(ghost)
+        key = (body, eyes)
+        sprite =  self._ghost_composites.get(key)
+        if sprite is None:
+            sprite = body.copy()
+            sprite.blit(self._sprite(f"eyes_{eyes}"), (0, 0))
+            self._ghost_composites[key] = sprite
+        return sprite
+
+    def _ghost_body(self, ghost: Ghost) -> pygame.Surface:
         color = getattr(ghost, "color", None)
         if color is None:
             return self._sprite(self.GHOST_SPRITE, getattr(ghost, "hue", 0.0))
