@@ -42,12 +42,7 @@ def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tup
 
 
 class Ghost(ABC):
-<<<<<<< HEAD
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 speed: float = 1, points: int = 200):
-=======
     def __init__(self, pos: tuple[int, int], maze: list[list[int]], points: int, speed: int = 1):
->>>>>>> master
         self.spawn_pos = pos
         self.position: tuple[int, int] = pos
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
@@ -189,26 +184,12 @@ class Ghost(ABC):
 
 class Blinky(Ghost):
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-<<<<<<< HEAD
-                 speed: float = 0.9, chase_rad: int = 1, points: int = 200):
-        super().__init__(pos, maze, speed, points)
-        self.state: State = State.CHASE
-        self._chase_radius: int = chase_rad
-        self.color: Colors = Colors.RED
-        self._rand_target = self._generate_random_target()
-        random.seed()
-
-    def _generate_random_target(self) -> tuple[int, int]:
-        return (random.randint(0, len(self._maze[0]) - 1),
-                random.randint(0, len(self._maze) - 1))
-=======
                  points: int, speed: int = 0.9, chase_rad: int = 1):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self._chase_radius: int = chase_rad
         self.color: Color
->>>>>>> master
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
@@ -231,15 +212,9 @@ class Blinky(Ghost):
 
 
 class Pinky(Ghost):
-<<<<<<< HEAD
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 speed: float = 0.9, chase_rad: int = 5, points: int = 200):
-        super().__init__(pos, maze, speed, points)
-=======
     def __init__(self, pos: tuple[int, int], maze: list[list[int]], points: int,
                  speed: int = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
->>>>>>> master
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
         self._chase_radius: int = chase_rad
@@ -272,9 +247,5 @@ class GhostFactory:
             name = g.get("name")
             pos = g.get("position")
             ghost = self.registry.get(name)
-<<<<<<< HEAD
-            ghosts.append(ghost(pos, maze, points=points))
-=======
             ghosts.append(ghost(pos, maze, points))
->>>>>>> master
         return ghosts
