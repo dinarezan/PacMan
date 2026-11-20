@@ -1,8 +1,8 @@
+import hjson
 import json
 from .models import Game, Highscores, Player
 from pathlib import Path
 
-TEMP_SCORE = "data/temp/score.txt"
 HIGHSCORE_PATH = "data/highscores.json"
 
 
@@ -37,6 +37,6 @@ def save_highscore(path: str, name: str, score: int) -> None:
 
 def load_config(path: str) -> Game:
     with open(path, 'r') as f:
-        config = json.load(f)
+        config = hjson.load(f)
     game = Game(**config)
     return game

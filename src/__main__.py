@@ -1,18 +1,19 @@
 from .entities import load_config, load_highscores
-import json
+import hjson
 from pydantic import ValidationError
 from src.core.engine import Engine
 from .entities import Player
 
-CONFIG_PATH = "config.json"
-
+CONFIG_PATH = "config.hjson"
 
 
 if __name__ == "__main__":
-    config = load_config(CONFIG_PATH)
-
-    engine = Engine(config)
-    engine.run()
+    try:
+        config = load_config(CONFIG_PATH)
+        engine = Engine(config)
+        engine.run()
+    except hjson.HjsonDecodeError as e:
+        print("HjsonDecodeError caught:", e)
 
     
 

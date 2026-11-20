@@ -2,6 +2,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 from math import hypot, dist
+from collections import deque
 import random
 from src.entities.pacman import PacMan
 from src.graphics.graphic_data import Colors
@@ -66,54 +67,51 @@ class Ghost(ABC):
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
-        visited: list[list[tuple[int, int]]] = []
-        visited.append([self.position])
-        path: list[tuple[int, int]] = []
-        valid_paths: list[list[tuple[int,int]]] = []
-        while visited:
-            path = visited.pop(0)
-            current = path[-1]
+        start = self.position
+        parents = {start: None}
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
 
             if current == target:
-                valid_paths.append(path)
-                break
+                path = []
+                node = current
+                while node is not None:
+                    path.append(node)
+                    node = parents[node]
+                return path[::-1]
 
             neighbours = get_neighbours(current, self._maze)
             for neighbour in neighbours:
-                if neighbour not in path:
-                    new_path = list(path)
-                    new_path.append(neighbour)
-                    visited.append(new_path)
-        if not valid_paths:
-            raise IndexError(f"{self.__class__.__name__} cannot find a path to pacman.")
-        return valid_paths.pop(0)
+                if neighbour not in parents:
+                    parents[neighbour] = current
+                    queue.append(neighbour)
+        return []
 
     def _intercepting_path_to_target(self, target: tuple[int, int], forbidden: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate a path to target from the side opposite of target's movement direction."""
-        visited: list[list[tuple[int, int]]] = []
-        visited.append([self.position])
-        path: list[tuple[int, int]] = []
-        valid_paths: list[list[tuple[int,int]]] = []
-        while visited:
-            path = visited.pop(0)
-            current = path[-1]
+        start = self.position
+        parents = {start: None}
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
             if current == forbidden:
                 continue
 
             if current == target:
-                valid_paths.append(path)
-                break
+                path = []
+                node = current
+                while node is not None:
+                    path.append(node)
+                    node = parents[node]
+                return path[::-1]
 
             neighbours = get_neighbours(current, self._maze)
             for neighbour in neighbours:
-                if neighbour not in path:
-                    new_path = list(path)
-                    new_path.append(neighbour)
-                    visited.append(new_path)
-        if not valid_paths:
-            return []
-            # raise IndexError(f"{self.__class__.__name__} cannot find a path to pacman.")
-        return valid_paths.pop(0)
+                if neighbour not in parents:
+                    parents[neighbour] = current
+                    queue.append(neighbour)
+        return []
 
     def _generate_random_target(self) -> tuple[int, int]:
         return (random.randint(0, len(self._maze[0]) - 1),
