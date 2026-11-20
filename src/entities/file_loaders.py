@@ -1,6 +1,5 @@
 import json
-from .models import Game
-from .player import Highscores, Player
+from .models import Game, Highscores, Player
 from pathlib import Path
 
 TEMP_SCORE = "data/temp/score.txt"
