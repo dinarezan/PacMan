@@ -230,16 +230,16 @@ class Gameplay:
             pacman = self.renderer.map.pacman
             #if pacman.speed ==
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w:
+                if event.key in (pygame.K_w, pygame.K_UP):
                     pacman.wanted = 0
                     return True
-                elif event.key == pygame.K_d:
+                elif event.key in (pygame.K_d, pygame.K_RIGHT):
                     pacman.wanted = 1
                     return True
-                elif event.key == pygame.K_s:
+                elif event.key in (pygame.K_s, pygame.K_DOWN):
                     pacman.wanted = 2
                     return True
-                elif event.key == pygame.K_a:
+                elif event.key in (pygame.K_a, pygame.K_LEFT):
                     pacman.wanted = 3
                     return True
         return False

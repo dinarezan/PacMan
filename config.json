@@ -22,22 +22,7 @@
 			"height": 15,
 			"pacgum": 42,
 			"ghosts": [
-				{
-					"name": "blinky",
-					"position": [0, 0]
-				},
-				{
-					"name": "pinky",
-					"position": [14, 14]
-				},
-				{
-					"name": "blinky",
-					"position": [14, 0]
-				},
-				{
-					"name": "pinky",
-					"position": [0, 14]
-				}
+				
 			],
 			"max_time": 120,
 			"seed": 0

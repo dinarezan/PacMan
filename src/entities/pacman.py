@@ -12,7 +12,7 @@ class PacMan:
         self.wanted: int | None = None #direction
         self.heading: int | None = None #direction
         self._next: tuple[int, int] | None = None
-        self.speed: float = 1.0
+        self.speed: float = 1.8
         self.size: float = 1.0
         self.state: str  # * For future states.
 
