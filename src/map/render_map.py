@@ -147,7 +147,7 @@ class RenderMap:
         self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
         self._pacman_images: dict[tuple[str, int | None],
                                   pygame.Surface] = {}
-
+        self._pacman_last_look = 4
         self.revealing = False
         self._time = 0.0
         self.game_init = False
@@ -577,7 +577,6 @@ class RenderMap:
         """Draw information about score, level, lives and power-ups"""
         pass
 
-
     # -- sprite helpers ------------------------------------------------
     def _pacman_sprite(self, pacman: Any) -> pygame.Surface:
         """
@@ -588,10 +587,16 @@ class RenderMap:
         follows ``pacman.direction`` (no rotation if it is None). Rotated
         frames are cached, so at most 3 frames x 4 directions are made.
         """
-        direction = getattr(pacman, "wanted", None)
+
+        direction = getattr(pacman, "heading", None)
         name = self._pacman_anim.frame if self.game_init else \
             self.PACMAN_SPRITE
-        key = (name, direction)
+        if direction is not None:
+            key = (name, direction)
+            self._pacman_last_look = direction
+        else:
+            key = (name, self._pacman_last_look)
+            direction = self._pacman_last_look
         image = self._pacman_images.get(key)
         if image is None:
             image = self._sprite(name)
