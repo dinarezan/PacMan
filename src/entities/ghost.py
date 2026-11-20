@@ -117,7 +117,7 @@ class Ghost(ABC):
         return (random.randint(0, len(self._maze[0]) - 1),
                 random.randint(0, len(self._maze) - 1))
 
-    def _random_movement(self, dt: float, pacman: PacMan) -> None:
+    def _random_movement(self, dt: float) -> None:
         if self.position == self._rand_target:
             self._rand_target = self._generate_random_target()
         self.hunt_target(dt, self._path_to_target, self._rand_target)
@@ -171,7 +171,7 @@ class Ghost(ABC):
             self.eyes = 4
             self._next = None
         elif self.state == State.FRIGHTENED or self.state == State.SCATTER:
-            self._random_movement(dt, pacman)
+            self._random_movement(dt)
         elif self.state == State.EATEN:
             self.hunt_target(dt, self._path_to_target, self.spawn_pos)
             if self.position == self.spawn_pos:
@@ -182,16 +182,16 @@ class Ghost(ABC):
 
 class Blinky(Ghost):
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: int = 0.9, chase_rad: int = 1):
+                 points: int, speed: int = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self._chase_radius: int = chase_rad
-        self.color: Color
+        self.color: Colors = Colors.RED
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
-        self.hunt_target(dt, pacman_pos, self._path_to_target, pacman_pos)
+        self.hunt_target(dt, self._path_to_target, pacman_pos)
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         dist_to_pacman = dist(self.map_pos, pacman.position)
@@ -205,8 +205,7 @@ class Blinky(Ghost):
         if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
-            self.default_behaviour(dt, pacman)
-            
+            self.default_behaviour(dt, pacman)  
 
 
 class Pinky(Ghost):
@@ -232,6 +231,7 @@ class Pinky(Ghost):
             self._intercept_target(dt, pacman)
         else:
             self.default_behaviour(dt, pacman)
+
 
 class GhostFactory:
     registry: dict[str, type[Ghost]] = {
