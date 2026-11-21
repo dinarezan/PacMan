@@ -82,6 +82,7 @@ class RenderMap:
         )
     PACMAN_ROTATION = {0: 270, 1: 0, 2: 90, 3: 180}
     GHOST_SPRITE = "body"
+    GHOST_BODY_FRIGHTENED = "frightered-body"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     KIND_SPRITES = {
         "dot": "pac-dots",
@@ -615,6 +616,23 @@ class RenderMap:
     def _ghost_sprite(self, ghost: Ghost) -> pygame.Surface:
         if getattr(ghost, "frightened", False):
             return self._sprite(self.FRIGHTENED_SPRITE)
+        state = getattr(ghost, "state", None)
+        if state is not None:
+
+            from src.entities.ghost import State
+            if state == State.EATEN:
+                body = self._sprite(self.GHOST_BODY_FRIGHTENED)
+                eyes = getattr(ghost, "eyes", 4)
+                if not isinstance(eyes, int) or not 0 <= eyes <= 4:
+                    raise ValueError(f"Unsupported ghost eyes: {eyes!r}")
+                key = (id(body), eyes)
+                sprite = self._ghost_composites.get(key)
+                if sprite == None:
+                    sprite = body.copy()
+                    sprite.blit(self._sprite(f"eyes_{eyes}"), (0, 0))
+                    self._ghost_composites[key] = sprite
+                return sprite
+
         eyes = getattr(ghost, "eyes", 4)
         if not isinstance(eyes, int) or not 0 <= eyes <= 4:
             raise ValueError(f"Unsupported ghost eyes yet!: {eyes!r}")

@@ -7,6 +7,7 @@ from math import ceil
 from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
+from src.entities.ghost import Ghost, State
 
 
 class Gameplay:
@@ -40,6 +41,7 @@ class Gameplay:
     LEVEL_TIME = 90.0
     START_LIVES = 3
     MAX_LIVES = 5
+    FRIGHTENED_TIME = 10.0
 
     def __init__(self,
                  renderer: RenderMap,
@@ -196,6 +198,10 @@ class Gameplay:
         for sup in contacts.super_pacgums:
             sup.eaten = True
             self.add_points(self.points_per_super_pacgum)
+            # ^ --  Ghost Frightened.
+            for ghost in game_map.ghosts:
+                ghost.state == State.FRIGHTENED
+                ghost.frightened_time = self.FRIGHTENED_TIME
         if contacts.ghosts:
             self.lose_life()
             self.life_lost = True
