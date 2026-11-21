@@ -198,7 +198,7 @@ class Gameplay:
         for sup in contacts.super_pacgums:
             sup.eaten = True
             self.add_points(self.points_per_super_pacgum)
-            # ^ --  Ghost Frightened.
+            # ^ --  Ghost Frightened -------------------------.
             for ghost in game_map.ghosts:
                 ghost.state = State.FRIGHTENED
                 ghost.frightened_time = self.FRIGHTENED_TIME
@@ -206,6 +206,8 @@ class Gameplay:
             if ghost.state == State.FRIGHTENED:
                 ghost.state = State.EATEN
                 self.add_points(self.points_per_ghost)
+            elif ghost.state == State.EATEN:
+                continue
             else:
                 self.lose_life()
                 self.life_lost = True
