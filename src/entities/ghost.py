@@ -180,10 +180,10 @@ class Ghost(ABC):
 
     def _respawn_behaviour(self, dt: float) -> None:
         if self.state == State.EATEN:
-            if self.map_pos != self.spawn_pos:
+            if self.position != self.spawn_pos:
                 self.hunt_target(min(dt, self.respawn_time),
                                  self._path_to_target, self.spawn_pos)
-            if self.map_pos == self.spawn_pos:
+            if self.position == self.spawn_pos:
                 self.state = State.WAITING
                 self._next = None
                 self.eyes = 4
@@ -215,7 +215,6 @@ class Ghost(ABC):
     def frightered_behaviour(self, dt: float) -> None:
         """Randomly 'run'"""
         self.frightened_time -= dt
-        print("FRIGHTERED")
         if self.frightened_time <= 0:
             self.state = self._default_state
             self.frightened_time = 0.0
