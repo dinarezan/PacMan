@@ -14,7 +14,8 @@ class PacMan:
         self._next: tuple[int, int] | None = None
         self.speed: float = 1.8
         self.size: float = 1.0
-        self.state: str  # * For future states.
+        self.power_up: bool = False
+        self.power_up_factor: float = 1.5
 
     def reset_position(self) -> None:
         self.position = self.spawn_pos
@@ -30,6 +31,8 @@ class PacMan:
             self.cell, self._next = self._next, self.cell
             self.heading = self.wanted
 
+        if self.power_up:
+            self.speed *= self.power_up_factor
         remaining = self.speed * dt # distance (in cells) to travel this frame
         while remaining > 10e-9:
             if self._next is None:

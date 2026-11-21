@@ -2,6 +2,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 from math import hypot, dist
+from collections import deque
 import random
 from src.entities.pacman import PacMan
 from src.graphics.graphic_data import Colors
@@ -69,60 +70,57 @@ class Ghost(ABC):
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
-        visited: list[list[tuple[int, int]]] = []
-        visited.append([self.position])
-        path: list[tuple[int, int]] = []
-        valid_paths: list[list[tuple[int,int]]] = []
-        while visited:
-            path = visited.pop(0)
-            current = path[-1]
+        start = self.position
+        parents = {start: None}
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
 
             if current == target:
-                valid_paths.append(path)
-                break
+                path = []
+                node = current
+                while node is not None:
+                    path.append(node)
+                    node = parents[node]
+                return path[::-1]
 
             neighbours = get_neighbours(current, self._maze)
             for neighbour in neighbours:
-                if neighbour not in path:
-                    new_path = list(path)
-                    new_path.append(neighbour)
-                    visited.append(new_path)
-        if not valid_paths:
-            raise IndexError(f"{self.__class__.__name__} cannot find a path to pacman.")
-        return valid_paths.pop(0)
+                if neighbour not in parents:
+                    parents[neighbour] = current
+                    queue.append(neighbour)
+        return []
 
     def _intercepting_path_to_target(self, target: tuple[int, int], forbidden: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate a path to target from the side opposite of target's movement direction."""
-        visited: list[list[tuple[int, int]]] = []
-        visited.append([self.position])
-        path: list[tuple[int, int]] = []
-        valid_paths: list[list[tuple[int,int]]] = []
-        while visited:
-            path = visited.pop(0)
-            current = path[-1]
+        start = self.position
+        parents = {start: None}
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
             if current == forbidden:
                 continue
 
             if current == target:
-                valid_paths.append(path)
-                break
+                path = []
+                node = current
+                while node is not None:
+                    path.append(node)
+                    node = parents[node]
+                return path[::-1]
 
             neighbours = get_neighbours(current, self._maze)
             for neighbour in neighbours:
-                if neighbour not in path:
-                    new_path = list(path)
-                    new_path.append(neighbour)
-                    visited.append(new_path)
-        if not valid_paths:
-            return []
-            # raise IndexError(f"{self.__class__.__name__} cannot find a path to pacman.")
-        return valid_paths.pop(0)
+                if neighbour not in parents:
+                    parents[neighbour] = current
+                    queue.append(neighbour)
+        return []
 
     def _generate_random_target(self) -> tuple[int, int]:
         return (random.randint(0, len(self._maze[0]) - 1),
                 random.randint(0, len(self._maze) - 1))
 
-    def _random_movement(self, dt: float, pacman: PacMan) -> None:
+    def _random_movement(self, dt: float) -> None:
         if self.position == self._rand_target:
             self._rand_target = self._generate_random_target()
         self.hunt_target(dt, self._path_to_target, self._rand_target)
@@ -180,6 +178,7 @@ class Ghost(ABC):
         if self.state == State.SLEEP or self.state == State.WAITING:
             self.eyes = 4
             self._next = None
+
         elif self.state == State.FRIGHTENED:
             self.frightened_time -= dt
             if self.frightened_time <= 0:
@@ -191,6 +190,10 @@ class Ghost(ABC):
 
         elif self.state == State.SCATTER:
             self._random_movement(dt, pacman)
+
+        #elif self.state == State.FRIGHTENED or self.state == State.SCATTER:
+        #    self._random_movement(dt)
+
         elif self.state == State.EATEN:
             self.hunt_target(dt, self._path_to_target, self.spawn_pos)
             if self.position == self.spawn_pos:
@@ -204,16 +207,17 @@ class Ghost(ABC):
 
 class Blinky(Ghost):
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9, chase_rad: int = 1):
+                 points: int, speed: float = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self._chase_radius: int = chase_rad
-        self.color: Color = Colors.RED
+        self.color: Colors = Colors.RED
+
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
-        self.hunt_target(dt, pacman_pos, self._path_to_target, pacman_pos)
+        self.hunt_target(dt, self._path_to_target, pacman_pos)
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         dist_to_pacman = dist(self.map_pos, pacman.position)
@@ -227,7 +231,7 @@ class Blinky(Ghost):
         if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
-            self.default_behaviour(dt, pacman)
+            self.default_behaviour(dt, pacman)  
 
 
 class Pinky(Ghost):
