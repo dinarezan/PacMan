@@ -58,6 +58,7 @@ class Ghost(ABC):
         self._default_state = State.SLEEP
         self._rand_target = self._generate_random_target()
         self.frightened_time: float = 0.0
+        self.respawn_time: float = 0.0
         random.seed()
 
     def reset_position(self) -> None:
@@ -67,6 +68,7 @@ class Ghost(ABC):
         self.eyes = 4
         self.state = self._default_state
         self.frightened_time = 0.0
+        self.respawn_time: float = 0.0
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -170,6 +172,27 @@ class Ghost(ABC):
         self.state = State.FRIGHTENED
         self.frightened_time = duration
 
+    def start_respawn(self, duration: float) -> None:
+        """Return to spawn while the respawn timer counts down."""
+        self.state = State.EATEN
+        self.frightened_time = 0.0
+        self.respawn_time = duration
+
+    def _respawn_behaviour(self, dt: float) -> None:
+        if self.state == State.EATEN:
+            if self.map_pos != self.spawn_pos:
+                self.hunt_target(min(dt, self.respawn_time),
+                                 self._path_to_target, self.spawn_pos)
+            if self.map_pos == self.spawn_pos:
+                self.state = State.WAITING
+                self._next = None
+                self.eyes = 4
+
+        self.respawn_time = max(0.0, self.respawn_time - dt)
+        if self.respawn_time <= 1e-9:
+            self.respawn_time = 0.0
+            self.state = State.SCATTER
+
     @abstractmethod
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         pass
@@ -224,10 +247,8 @@ class Blinky(Ghost):
         # --  Behaviour State  -----------------------------------------
         if self.state == State.FRIGHTENED:
             self.frightered_behaviour
-        elif self.state == State.EATEN:
-            self.hunt_target(dt, self._path_to_target, self.spawn_pos)
-            if self.position == self.spawn_pos:
-                self.state = State.WAITING
+        elif self.state in (State.EATEN, State.WAITING):
+            self._respawn_behaviour(dt)
         elif self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
@@ -255,10 +276,8 @@ class Pinky(Ghost):
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         if self.state == State.FRIGHTENED:
             self.frightered_behaviour
-        elif self.state == State.EATEN:
-            self.hunt_target(dt, self._path_to_target, self.spawn_pos)
-            if self.position == self.spawn_pos:
-                self.state = State.WAITING
+        elif self.state in (State.EATEN, State.WAITING):
+            self._respawn_behaviour(dt)
         elif self.state == State.CHASE:
             self._intercept_target(dt, pacman)
         else:
