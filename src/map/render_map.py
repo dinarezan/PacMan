@@ -7,7 +7,7 @@ from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
 from src.entities.map import Map
 from src.graphics.animation import SpriteAnimation
-from src.entities.ghost import Ghost
+from src.entities.ghost import Ghost, State
 
 
 class RenderMap:
@@ -614,8 +614,8 @@ class RenderMap:
         return image
 
     def _ghost_sprite(self, ghost: Ghost) -> pygame.Surface:
-        if getattr(ghost, "frightened", False):
-            return self._sprite(self.FRIGHTENED_SPRITE)
+        # if getattr(ghost, "frightened", False):
+        #     return self._sprite(self.FRIGHTENED_SPRITE)
         state = getattr(ghost, "state", None)
         if state is not None:
 
@@ -647,6 +647,8 @@ class RenderMap:
 
     def _ghost_body(self, ghost: Ghost) -> pygame.Surface:
         color = getattr(ghost, "color", None)
+        if ghost.state == State.FRIGHTENED:
+            return self._sprite(self.FRIGHTENED_SPRITE)
         if color is None:
             return self._sprite(self.GHOST_SPRITE, getattr(ghost, "hue", 0.0))
         if color == Colors.RED:

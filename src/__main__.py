@@ -1,19 +1,17 @@
-import json
+#import json
 from src.entities.file_loaders import load_config
-
 from pydantic import ValidationError
 from src.core.engine import Engine
 
-CONFIG_PATH = "config.hjson"
+CONFIG_PATH = "config.json"
+
 
 
 if __name__ == "__main__":
-    try:
-        config = load_config(CONFIG_PATH)
-        engine = Engine(config)
-        engine.run()
-    except json.jsonDecodeError as e:
-        print("jsonDecodeError caught:", e)
+    config = load_config(CONFIG_PATH)
+
+    engine = Engine(config)
+    engine.run()
 
     
 

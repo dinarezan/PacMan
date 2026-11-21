@@ -120,7 +120,7 @@ class Ghost(ABC):
         return (random.randint(0, len(self._maze[0]) - 1),
                 random.randint(0, len(self._maze) - 1))
 
-    def _random_movement(self, dt: float) -> None:
+    def _random_movement(self, dt: float, pacman: PacMan) -> None:
         if self.position == self._rand_target:
             self._rand_target = self._generate_random_target()
         self.hunt_target(dt, self._path_to_target, self._rand_target)
@@ -177,32 +177,26 @@ class Ghost(ABC):
     def default_behaviour(self, dt: float, pacman: PacMan) -> None:
         if self.state == State.SLEEP or self.state == State.WAITING:
             self.eyes = 4
-            self._next = None
-
-        elif self.state == State.FRIGHTENED:
-            self.frightened_time -= dt
-            if self.frightened_time <= 0:
-                self.state = self._default_state
-                self.frightened_time = 0.0
-                print("HAY MY MOTHERR!")
-            else:
-                self._random_movement(dt, pacman)
+            self._next = None        
 
         elif self.state == State.SCATTER:
             self._random_movement(dt, pacman)
 
         #elif self.state == State.FRIGHTENED or self.state == State.SCATTER:
         #    self._random_movement(dt)
-
-        elif self.state == State.EATEN:
-            self.hunt_target(dt, self._path_to_target, self.spawn_pos)
-            if self.position == self.spawn_pos:
-                self.state = State.WAITING
         elif self.state == State.NIGHTMARE:
             self.nightmare_hunt(dt, pacman)
 
     def frightered_behaviour(self, dt: float, pacman: PacMan) -> None:
-        self._random_movement(dt, pacman)
+        """Randomly 'run'"""
+        self.frightened_time -= dt
+        print("FRIGHTERED")
+        if self.frightened_time <= 0:
+            self.state = self._default_state
+            self.frightened_time = 0.0
+            print("HAY MY MOTHERR!")
+        else:
+            self._random_movement(dt, pacman)
 
 
 class Blinky(Ghost):
@@ -214,24 +208,30 @@ class Blinky(Ghost):
         self._chase_radius: int = chase_rad
         self.color: Colors = Colors.RED
 
-
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
         self.hunt_target(dt, self._path_to_target, pacman_pos)
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         dist_to_pacman = dist(self.map_pos, pacman.position)
+
+        # --  Hunting Strategy  -----------------------------------------
         if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
             self.state = State.CHASE
         elif dist_to_pacman > self._chase_radius and self.state == State.CHASE:
             self.state = State.SCATTER
-        else:
-            pass
 
-        if self.state == State.CHASE:
+        # --  Behaviour State  -----------------------------------------
+        if self.state == State.FRIGHTENED:
+            self.frightered_behaviour
+        elif self.state == State.EATEN:
+            self.hunt_target(dt, self._path_to_target, self.spawn_pos)
+            if self.position == self.spawn_pos:
+                self.state = State.WAITING
+        elif self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
-            self.default_behaviour(dt, pacman)  
+            self.default_behaviour(dt, pacman)
 
 
 class Pinky(Ghost):
@@ -253,7 +253,13 @@ class Pinky(Ghost):
         self.hunt_target(dt, self._intercepting_path_to_target, target, forbidden)
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
-        if self.state == State.CHASE:
+        if self.state == State.FRIGHTENED:
+            self.frightered_behaviour
+        elif self.state == State.EATEN:
+            self.hunt_target(dt, self._path_to_target, self.spawn_pos)
+            if self.position == self.spawn_pos:
+                self.state = State.WAITING
+        elif self.state == State.CHASE:
             self._intercept_target(dt, pacman)
         else:
             self.default_behaviour(dt, pacman)

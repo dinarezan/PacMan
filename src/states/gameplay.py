@@ -200,11 +200,15 @@ class Gameplay:
             self.add_points(self.points_per_super_pacgum)
             # ^ --  Ghost Frightened.
             for ghost in game_map.ghosts:
-                ghost.state == State.FRIGHTENED
+                ghost.state = State.FRIGHTENED
                 ghost.frightened_time = self.FRIGHTENED_TIME
-        if contacts.ghosts:
-            self.lose_life()
-            self.life_lost = True
+        for ghost in contacts.ghosts:
+            if ghost.state == State.FRIGHTENED:
+                ghost.state = State.EATEN
+                self.add_points(self.points_per_ghost)
+            else:
+                self.lose_life()
+                self.life_lost = True
         return bool(contacts.pacgums or contacts.super_pacgums) \
             and self.level_complete
 
