@@ -122,7 +122,7 @@ class Ghost(ABC):
         return (random.randint(0, len(self._maze[0]) - 1),
                 random.randint(0, len(self._maze) - 1))
 
-    def _random_movement(self, dt: float, pacman: PacMan) -> None:
+    def _random_movement(self, dt: float) -> None:
         if self.position == self._rand_target:
             self._rand_target = self._generate_random_target()
         self.hunt_target(dt, self._path_to_target, self._rand_target)
@@ -190,7 +190,7 @@ class Ghost(ABC):
         self.respawn_time = max(0.0, self.respawn_time - dt)
         if self.respawn_time <= 1e-9:
             self.respawn_time = 0.0
-            self.state = State.SCATTER
+            self.state = self._default_state
 
     @abstractmethod
     def behaviour(self, dt: float, pacman: PacMan) -> None:
@@ -201,18 +201,18 @@ class Ghost(ABC):
             self.eyes = 4
             self._next = None
         elif self.state == State.SCATTER:
-            self._random_movement(dt, pacman)
+            self._random_movement(dt)
 
         elif self.state in (State.EATEN, State.WAITING):
             self._respawn_behaviour(dt)
         elif self.state == State.NIGHTMARE:
             self.nightmare_hunt(dt, pacman)
         elif self.state == State.FRIGHTENED:
-            self.frightered_behaviour
+            self.frightered_behaviour(dt)
         else:
-            self._random_movement(dt, pacman)
+            self._random_movement(dt)
 
-    def frightered_behaviour(self, dt: float, pacman: PacMan) -> None:
+    def frightered_behaviour(self, dt: float) -> None:
         """Randomly 'run'"""
         self.frightened_time -= dt
         print("FRIGHTERED")
@@ -220,7 +220,7 @@ class Ghost(ABC):
             self.state = self._default_state
             self.frightened_time = 0.0
         else:
-            self._random_movement(dt, pacman)
+            self._random_movement(dt)
 
 
 class Blinky(Ghost):
