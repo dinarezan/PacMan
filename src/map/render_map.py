@@ -2,6 +2,7 @@ from __future__ import annotations
 import pygame
 import colorsys
 import random
+from math import sin, tau
 from typing import Any
 from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
@@ -118,6 +119,9 @@ class RenderMap:
     GHOST_FALL_TIME = 0.5
     GHOST_STAGGER = 0.2       # delay between ghosts
     GHOST_START_SCALE = 0.2
+    RESPAWN_FLASH_TIME = 3.0
+    EATEN_BOUNCE_AMPLITUDE = 0.08  # fraction of a tile
+    EATEN_BOUNCE_PERIOD = 0.8
     SHADOW_WIDTH = 0.8        # shadow width relative to the sprite
     SHADOW_OFFSET = 0.3       # shadow drop below center, times sprite height
     SHADOW_LAYERS = 12
@@ -560,10 +564,19 @@ class RenderMap:
     def _draw_ghosts(self, screen: pygame.Surface) -> None:
         """Draw the ghosts (blue when frightened)."""
         for ghost in getattr(self.map, "ghosts", ()):
-            self._draw_shadow(screen, getattr(ghost, "map_pos", ghost),
-                              self._ghost_sprite(ghost))
-            self._blit(screen, self._ghost_sprite(ghost),
-                       getattr(ghost, "map_pos", ghost))
+            #  --  Eyes floating animation  ----------------------
+            position = getattr(ghost, "map_pos", ghost)
+            if getattr(ghost, "state", None) == State.EATEN:
+                eyes = ghost.eyes
+                offset = self.EATEN_BOUNCE_AMPLITUDE * sin(
+                    tau * ghost.respawn_time / self.EATEN_BOUNCE_PERIOD)
+                if eyes in (0, 2):
+                    position = (position[0] + offset, position[1])
+                elif eyes in (1, 3):
+                    position = (position[0], position[1] + offset)
+            sprite = self._ghost_sprite(ghost)
+            self._draw_shadow(screen, position, sprite)
+            self._blit(screen, sprite, position)
 
     def _draw_super_pellets(self, screen: pygame.Surface) -> None:
         """Draw uneaten super pacgums."""
@@ -616,28 +629,19 @@ class RenderMap:
     def _ghost_sprite(self, ghost: Ghost) -> pygame.Surface:
         # if getattr(ghost, "frightened", False):
         #     return self._sprite(self.FRIGHTENED_SPRITE)
-        state = getattr(ghost, "state", None)
-        #if state is not None:
-
-        #    from src.entities.ghost import State
-        #    if state == State.EATEN:
-        #        body = self._sprite(self.GHOST_BODY_FRIGHTENED)
-        #        eyes = getattr(ghost, "eyes", 4)
-        #        if not isinstance(eyes, int) or not 0 <= eyes <= 4:
-        #            raise ValueError(f"Unsupported ghost eyes: {eyes!r}")
-        #        key = (id(body), eyes)
-        #        sprite = self._ghost_composites.get(eyes)
-        #        if sprite == None:
-        #            sprite = body.copy()
-        #            sprite.blit(self._sprite(f"eyes_{eyes}"), (0, 0))
-        #            self._ghost_composites[eyes] = sprite
-        #        return sprite
-
         eyes = getattr(ghost, "eyes", 4)
         if not isinstance(eyes, int) or not 0 <= eyes <= 4:
             raise ValueError(f"Unsupported ghost eyes yet!: {eyes!r}")
-        if getattr(ghost, "state", None) == State.EATEN:
-            return self._sprite(f"eyes_{eyes}")
+        if getattr(ghost, "state", None) in (State.EATEN, State.WAITING):
+            remaining = getattr(ghost, "respawn_time", 0.0)
+            if 0.0 < remaining <= self.RESPAWN_FLASH_TIME:
+                elapsed = self.RESPAWN_FLASH_TIME - remaining
+                # The flash rate rises linearly from one to four cycles/sec.
+                body_visible = int(2 * elapsed + elapsed * elapsed) % 2 == 1
+            else:
+                body_visible = False
+            if not body_visible:
+                return self._sprite(f"eyes_{eyes}")
         body = self._ghost_body(ghost)
         key = (body, eyes)
         sprite =  self._ghost_composites.get(key)
@@ -650,7 +654,7 @@ class RenderMap:
     def _ghost_body(self, ghost: Ghost) -> pygame.Surface:
         color = getattr(ghost, "color", None)
         if ghost.state == State.FRIGHTENED:
-            return self._sprite(self.FRIGHTENED_SPRITE)
+            return self._sprite(self.GHOST_BODY_FRIGHTENED)
         if color is None:
             return self._sprite(self.GHOST_SPRITE, getattr(ghost, "hue", 0.0))
         if color == Colors.RED:

@@ -42,6 +42,7 @@ class Gameplay:
     START_LIVES = 3
     MAX_LIVES = 5
     FRIGHTENED_TIME = 10.0
+    RESPAWN_TIME = 10.0
 
     def __init__(self,
                  renderer: RenderMap,
@@ -205,7 +206,7 @@ class Gameplay:
                     ghost.frightened_time = self.FRIGHTENED_TIME
         for ghost in contacts.ghosts:
             if ghost.state == State.FRIGHTENED:
-                ghost.state = State.EATEN
+                ghost.start_respawn(self.RESPAWN_TIME)
                 self.add_points(self.points_per_ghost)
             elif ghost.state in (State.EATEN, State.WAITING):
                 continue

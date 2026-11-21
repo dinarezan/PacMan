@@ -68,7 +68,7 @@ class Ghost(ABC):
         self.eyes = 4
         self.state = self._default_state
         self.frightened_time = 0.0
-        self.respawn_time: float = 0.0
+        self.respawn_time = 0.0
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -187,7 +187,6 @@ class Ghost(ABC):
                 self.state = State.WAITING
                 self._next = None
                 self.eyes = 4
-
         self.respawn_time = max(0.0, self.respawn_time - dt)
         if self.respawn_time <= 1e-9:
             self.respawn_time = 0.0
@@ -198,17 +197,20 @@ class Ghost(ABC):
         pass
 
     def default_behaviour(self, dt: float, pacman: PacMan) -> None:
-        if self.state == State.SLEEP or self.state == State.WAITING:
+        if self.state == State.SLEEP:
             self.eyes = 4
-            self._next = None        
-
+            self._next = None
         elif self.state == State.SCATTER:
             self._random_movement(dt, pacman)
 
-        #elif self.state == State.FRIGHTENED or self.state == State.SCATTER:
-        #    self._random_movement(dt)
+        elif self.state in (State.EATEN, State.WAITING):
+            self._respawn_behaviour(dt)
         elif self.state == State.NIGHTMARE:
             self.nightmare_hunt(dt, pacman)
+        elif self.state == State.FRIGHTENED:
+            self.frightered_behaviour
+        else:
+            self._random_movement(dt, pacman)
 
     def frightered_behaviour(self, dt: float, pacman: PacMan) -> None:
         """Randomly 'run'"""
@@ -217,7 +219,6 @@ class Ghost(ABC):
         if self.frightened_time <= 0:
             self.state = self._default_state
             self.frightened_time = 0.0
-            print("HAY MY MOTHERR!")
         else:
             self._random_movement(dt, pacman)
 
@@ -237,22 +238,15 @@ class Blinky(Ghost):
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
         dist_to_pacman = dist(self.map_pos, pacman.position)
-
-        # --  Hunting Strategy  -----------------------------------------
         if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
             self.state = State.CHASE
         elif dist_to_pacman > self._chase_radius and self.state == State.CHASE:
             self.state = State.SCATTER
 
-        # --  Behaviour State  -----------------------------------------
-        if self.state == State.FRIGHTENED:
-            self.frightered_behaviour
-        elif self.state in (State.EATEN, State.WAITING):
-            self._respawn_behaviour(dt)
-        elif self.state == State.CHASE:
+        if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
-            self.default_behaviour(dt, pacman)
+            self.default_behaviour(dt, pacman)  
 
 
 class Pinky(Ghost):
@@ -274,11 +268,7 @@ class Pinky(Ghost):
         self.hunt_target(dt, self._intercepting_path_to_target, target, forbidden)
 
     def behaviour(self, dt: float, pacman: PacMan) -> None:
-        if self.state == State.FRIGHTENED:
-            self.frightered_behaviour
-        elif self.state in (State.EATEN, State.WAITING):
-            self._respawn_behaviour(dt)
-        elif self.state == State.CHASE:
+        if self.state == State.CHASE:
             self._intercept_target(dt, pacman)
         else:
             self.default_behaviour(dt, pacman)
