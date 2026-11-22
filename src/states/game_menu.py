@@ -127,9 +127,10 @@ class GameMenu:
     def _make_config_menu(self) -> Menu:
         """Build the configuration menu."""
         return self._new_menu(
-            ["3s", "5s", "10s", "Return"],
+            ["resolution", "size", "cheats", "music", "Return"],
             [lambda: self.set_option(3),
              lambda: self.set_option(5),
+             lambda: self.set_option(10),
              lambda: self.set_option(10),
              lambda: self.change_menu("main")],
             title_case=False,

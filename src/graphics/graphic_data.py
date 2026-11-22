@@ -15,6 +15,9 @@ class Colors(Enum):
     BLACK = 'black'
 
 
+FRUITS: dict
+
+
 # Hue is in degrees; saturation and luminosity are percentage changes.
 GHOST_COLOR_ADJUSTMENTS: dict[Colors, tuple[int, int, int]] = {
     Colors.ORANGE: (29, -11, 0),

@@ -1,7 +1,7 @@
 from .ghost import Ghost
 import random
 
-FRUIT_VALUES = {"cherry": 20,
+FRUIT_VALUES = {"cherry": 100,
                 "strawberry": 20,
                 "orange": 20,
                 "banana": 20,
@@ -14,6 +14,7 @@ FRUIT_VALUES = {"cherry": 20,
 
 
 POWER_UPS = {"coffee": {"factor": 1.5, "duration": 5}}
+
 
 class Fruit(Ghost):
     def __init__(self, name: str, maze: list[list[int]], speed: float = 2):
