@@ -274,12 +274,15 @@ class Punky(Ghost):
         dist_to_pacman = dist(self.map_pos, pacman.position)
         if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
             self.state = State.CHASE
+            self.speed = 2.0
         elif dist_to_pacman > self._chase_radius and self.state == State.CHASE:
             self.state = State.SCATTER
+            self.speed = 0.9
 
         if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
+            self.speed = 0.9
             self.default_behaviour(dt, pacman)  
 
 
@@ -321,12 +324,13 @@ class Clyde(Ghost):
     def behaviour(self, dt: float, pacman: PacMan):
         if self.state == State.CHASE:
             dist_to_pacman = len(self._path_to_target(pacman.cell))
-            if dist_to_pacman > 8 or self.position == self.corner:
-                print(f"Clyde is moving towards pacman")
+            dist_to_corner = len(self._path_to_target(self.corner))
+            if dist_to_pacman <= 5 and dist_to_corner < 2:
+                self._random_movement(dt)
+            elif dist_to_pacman > 5:
                 self.hunt_target(dt, self._path_to_target, pacman.cell)
             else:
                 self.hunt_target(dt, self._path_to_target, self.corner)
-                print("Hunting my own corner")
         else:
             self.default_behaviour(dt, pacman)
 
