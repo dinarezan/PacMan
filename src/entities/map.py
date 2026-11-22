@@ -1,6 +1,7 @@
 from .mazegenerator import MazeGenerator
 from .pacman import PacMan, PacGum, SuperPacGum, PacGumFactory
 from .ghost import Ghost, GhostFactory
+from .extras import Fruit
 from .models import BaseGhost
 from numpy.typing import NDArray
 import numpy as np
@@ -30,6 +31,8 @@ class Map(MazeGenerator):
         self.super_pacgums: list[
             SuperPacGum] = PacGumFactory.create_super(self.maze,
                                                       points_per_super_pacgum)
+        self.fruit: Fruit | None = None
+        self.extra_fruits: list[Fruit] = []
         self.max_time: int = max_time
 
     def _position_pacman(self, size: tuple[int, int]) -> PacMan:

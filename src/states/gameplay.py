@@ -1,12 +1,14 @@
 from __future__ import annotations
 import pygame
 
+import random
 from typing import Any
 import time
 from math import ceil, hypot
 from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
+from src.entities.extras import FRUIT_LEVELS, Fruit, reachable_cells
 from src.entities.ghost import Ghost, State, Blinky
 
 
@@ -46,6 +48,8 @@ class Gameplay:
     DASH_DURATION = 0.8
     DASH_COOLDOWN = 15.0
     DASH_SPEED = 10.0
+    FRUIT_LIFETIME = 25.0
+    FRUIT_SPEED = 2.0
 
     def __init__(self,
                  renderer: RenderMap,
@@ -69,6 +73,9 @@ class Gameplay:
         self.dash_cooldown_remaining = 0.0
         self.points = points
         self.fruits = 0
+        self._fruit_spawned = False
+        self.renderer.map.fruit = None
+        self.renderer.map.extra_fruits = []
         self.current_level: int = level
         self.curr_time = curr_time
         self.max_time = max_time
@@ -98,6 +105,9 @@ class Gameplay:
         """Switch maps while preserving the player's accumulated progress."""
         self._end_dash()
         self.renderer = renderer
+        self.renderer.map.fruit = None
+        self.renderer.map.extra_fruits = []
+        self._fruit_spawned = False
         self.current_level += 1
         self.max_time = float(max_time)
         self.curr_time = 0
@@ -199,6 +209,49 @@ class Gameplay:
             trail.append(position)
             del trail[:-6]
 
+    def _new_fruit(self, name: str) -> Fruit:
+        game_map = self.renderer.map
+
+        reachable = reachable_cells(game_map.maze, game_map.pacman.cell)
+        candidates = reachable[1:] or reachable
+        occupied = {fruit.position for fruit in game_map.extra_fruits}
+        if game_map.fruit is not None:
+            occupied.add(game_map.fruit.position)
+        available = [position for position in candidates
+                     if position not in occupied]
+        position = random.choice(available or candidates)
+        return Fruit(name, game_map.maze, self.FRUIT_SPEED, position=position)
+
+    def _spawn_fruit(self) -> None:
+        game_map = self.renderer.map
+        level = min(self.current_level, max(FRUIT_LEVELS.values()))
+        name = next(name for name, fruit_level in FRUIT_LEVELS.items()
+                    if fruit_level == level)
+        game_map.fruit = self._new_fruit(name)
+        self._fruit_spawned = True
+
+    def spawn_random_fruit(self) -> None:
+        """Add a bonus fruit without affecting the level's normal spawn."""
+        name = random.choice(tuple(FRUIT_LEVELS))
+        self.renderer.map.extra_fruits.append(self._new_fruit(name))
+
+    def _update_fruit(self, dt: float) -> None:
+        game_map = self.renderer.map
+        fruits = ([game_map.fruit] if game_map.fruit is not None else [])
+        fruits.extend(game_map.extra_fruits)
+        for fruit in fruits:
+            old_age = fruit.age
+            fruit.age = min(self.FRUIT_LIFETIME, fruit.age + dt)
+            landing = RenderMap._bounce_duration()
+            moving_time = max(0.0, fruit.age - max(old_age, landing))
+            if fruit.moving and moving_time:
+                fruit.behaviour(moving_time)
+            if fruit.age >= self.FRUIT_LIFETIME - 1e-9:
+                if fruit is game_map.fruit:
+                    game_map.fruit = None
+                else:
+                    game_map.extra_fruits.remove(fruit)
+
     def update(self, dt: float) -> None:
         """
         Advance the timers and active gameplay.
@@ -213,14 +266,12 @@ class Gameplay:
             Seconds since the previous frame.
         """
         self.life_lost = False
-        if not self.renderer.game_init or self.game_over:
+        if (not self.renderer.game_init or self.renderer.revealing
+                or self.game_over):
             return
         if not self.time_up:
             self.time_left = max(0.0, self.time_left - dt)
             self.time_up = self.time_left == 0.0
-
-        if self.renderer.revealing:
-            return
 
         self.dash_cooldown_remaining = max(
             0.0, self.dash_cooldown_remaining - dt)
@@ -247,7 +298,8 @@ class Gameplay:
         pacman_factor = (4.5 if self.flash_mode else 1.0)
         if dashing:
             pacman_factor *= self.DASH_SPEED
-        max_speed = max([game_map.pacman.speed * pacman_factor]
+        max_speed = max([game_map.pacman.speed * pacman_factor,
+                         self.FRUIT_SPEED]
                         + [ghost.speed for ghost in game_map.ghosts])
         steps = max(1, ceil(max_speed * dt / 0.1))
         step_dt = dt / steps
@@ -256,6 +308,7 @@ class Gameplay:
                 break
             for ghost in game_map.ghosts:
                 ghost.behaviour(step_dt, game_map.pacman)
+            self._update_fruit(step_dt)
             if dashing:
                 self._record_dash_position(game_map.pacman.position)
             game_map.pacman.update_position(
@@ -286,6 +339,24 @@ class Gameplay:
                 if ghost.state not in (State.EATEN, State.WAITING):
                     ghost.state = State.FRIGHTENED
                     ghost.frightened_time = self.FRIGHTENED_TIME
+        fruits = ([game_map.fruit] if game_map.fruit is not None else [])
+        fruits.extend(game_map.extra_fruits)
+        for fruit in fruits:
+            if (fruit.age >= RenderMap._bounce_duration()
+                    and hypot(game_map.pacman.position[0] - fruit.map_pos[0],
+                              game_map.pacman.position[1] - fruit.map_pos[1])
+                    <= self.collisions.GHOST_DISTANCE):
+                fruit.eaten = True
+                self.collect_fruit(fruit.value)
+                if fruit is game_map.fruit:
+                    game_map.fruit = None
+                else:
+                    game_map.extra_fruits.remove(fruit)
+
+        if (not self._fruit_spawned and game_map.pacgums
+                and sum(gum.eaten for gum in game_map.pacgums) * 2
+                > len(game_map.pacgums)):
+            self._spawn_fruit()
 
         # --  Ghosts States Updating  -------------------------------
         pacgums = game_map.pacgums

@@ -30,7 +30,7 @@ GHOST_COLOR_ADJUSTMENTS: dict[Colors, tuple[int, int, int]] = {
     Colors.PINK: (-40, -40, 10),
     Colors.PEACH: (9, -26, 0),
     Colors.GREY: (0, -100, 0),
-    Colors.MAGENTA: (-26, 5, -2),
+    Colors.MAGENTA: (-29, 5, -5),
     Colors.SHADOW: (0, 0, -100),
 }
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 import pygame
 import colorsys
 import random
-from math import sin, tau
+from math import hypot, sin, tau
 from typing import Any
 from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
@@ -87,6 +87,7 @@ class RenderMap:
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     NIGHTMARE_BODY = "nightmare_body"
     NIGHTMARE_EYES = "nightmare_eyes"
+    NIGHTMARE_EYE_OFFSET = 0.03
     KIND_SPRITES = {
         "dot": "dot",
         "power": "donut",
@@ -157,7 +158,9 @@ class RenderMap:
         self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
         self._pacman_images: dict[tuple[str, int | None],
                                   pygame.Surface] = {}
+        self._white_pacman_images: dict[pygame.Surface, pygame.Surface] = {}
         self._pacman_last_look = 4
+        self.pacman_flash_white = False
         self.dash_active = False
         self.dash_trail: list[tuple[float, float]] = []
         self.revealing = False
@@ -344,11 +347,12 @@ class RenderMap:
         self._t_end = t
 
     # -- falling physics -----------------------------------------------
-    def _bounce_duration(self) -> float:
+    @classmethod
+    def _bounce_duration(cls) -> float:
         """Total time of a pacgum drop, including all rebounds."""
-        e = self.DOT_RESTITUTION
-        return self.DOT_FALL_TIME * (
-            1 + 2 * sum(e ** k for k in range(1, self.DOT_BOUNCES + 1)))
+        e = cls.DOT_RESTITUTION
+        return cls.DOT_FALL_TIME * (
+            1 + 2 * sum(e ** k for k in range(1, cls.DOT_BOUNCES + 1)))
 
     def _bounce(self, t: float, drop: float) -> float:
         """Height in pixels above the ground `t` seconds after release."""
@@ -467,6 +471,7 @@ class RenderMap:
         screen.blit(self._static, (0, 0))
         self._draw_pacgums(screen)
         self._draw_super_pellets(screen)
+        self._draw_fruit(screen)
         self._draw_ghosts(screen)
         self._draw_pacman(screen)
         #self._draw_shadows(screen)
@@ -528,6 +533,14 @@ class RenderMap:
         pacman = getattr(self.map, "pacman", None)
         if pacman is not None:
             sprite = self._pacman_sprite(pacman)
+            if self.pacman_flash_white:
+                white = self._white_pacman_images.get(sprite)
+                if white is None:
+                    white = sprite.copy()
+                    white.fill((255, 255, 255),
+                               special_flags=pygame.BLEND_RGB_MAX)
+                    self._white_pacman_images[sprite] = white
+                sprite = white
             if self.dash_active:
                 for index, position in enumerate(self.dash_trail):
                     afterimage = sprite.copy()
@@ -584,6 +597,19 @@ class RenderMap:
                 self._draw_shadow(screen, item.position, sprite, strength=0.7)
                 self._blit(screen, sprite, item.position)
 
+    def _draw_fruit(self, screen: pygame.Surface) -> None:
+        fruit = getattr(self.map, "fruit", None)
+        fruits = ([fruit] if fruit is not None else [])
+        fruits.extend(getattr(self.map, "extra_fruits", ()))
+        for fruit in fruits:
+            name = fruit.name
+            sprite = self._sprite(name)
+            drop = self.DROP_TILES * self.tile
+            height = self._bounce(fruit.age, drop)
+            self._draw_shadow(screen, fruit.map_pos, sprite,
+                              1.0 - min(height / drop, 0.7))
+            self._blit(screen, sprite, fruit.map_pos, lift=height)
+
     def _draw_power_ups(self, screen: pygame.Surface) -> None:
         """Draw power ups on the map"""
         pass
@@ -625,6 +651,17 @@ class RenderMap:
         return image
 
     def _ghost_sprite(self, ghost: Ghost) -> pygame.Surface:
+        if ghost.state == State.NIGHTMARE:
+            dx = self.map.pacman.position[0] - ghost.map_pos[0]
+            dy = self.map.pacman.position[1] - ghost.map_pos[1]
+            distance = hypot(dx, dy)
+            offset = (0, 0)
+            if distance:
+                scale = self.tile * self.NIGHTMARE_EYE_OFFSET / distance
+                offset = (round(dx * scale), round(dy * scale))
+            sprite = self._sprite(self.NIGHTMARE_BODY).copy()
+            sprite.blit(self._sprite(self.NIGHTMARE_EYES), offset)
+            return sprite
         # if getattr(ghost, "frightened", False):
         #     return self._sprite(self.FRIGHTENED_SPRITE)
         eyes = getattr(ghost, "eyes", 4)

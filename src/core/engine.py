@@ -38,7 +38,10 @@ class Engine:
 
 
     BACKGROUND = (10, 10, 10)
-    RESPAWN_DELAY = 1.0
+    RESPAWN_FLASH_DURATION = 1.0
+    RESPAWN_BLACK_DURATION = 1.0
+    RESPAWN_DELAY = RESPAWN_FLASH_DURATION + RESPAWN_BLACK_DURATION
+    RESPAWN_FLASH_INTERVAL = 0.125
     WINDOW_SIZE = (1280, 1000)
 
     # def __init__(self, config,
@@ -84,6 +87,7 @@ class Engine:
             "get_cheats": self.get_cheats,
             "toggle_cheat": self.toggle_cheat,
             "next_level": self.cheat_next_level,
+            "spawn_fruit": self.cheat_spawn_fruit,
         }
         self.running = True
         self._menu = GameMenu(
@@ -224,6 +228,11 @@ class Engine:
         if self.game_active:
             self._menu.show_pause(self.gameplay.points)
 
+    def cheat_spawn_fruit(self) -> None:
+        if not self.cheats or not self.game_active:
+            raise RuntimeError("Cheats require an active game and cheat mode")
+        self.gameplay.spawn_random_fruit()
+
     def _sync_volume(self) -> None:
         if not pygame.mixer.get_init():
             self._volume_channels = None
@@ -289,13 +298,26 @@ class Engine:
             self._menu.update()
         elif self.respawn_remaining > 0:
             self.respawn_remaining = max(0.0, self.respawn_remaining - dt)
+            if self.respawn_remaining < 1e-9:
+                self.respawn_remaining = 0.0
+                if self.gameplay.game_over:
+                    self.score = self.gameplay.points
+                    self.pause = True
+                    self.game_active = False
+                    self._menu.show_game_over(self.score)
+                else:
+                    self.gameplay.reset_positions()
         elif self.renderer:
+            revealing = self.renderer.revealing
             self.renderer.update(dt)
+            if revealing:
+                return
             if self.gameplay:
                 if (self.renderer.game_init and not self.renderer.revealing
                         and self.gameplay.level_complete):
                     self._advance_level()
                     return
+
                 self.gameplay.update(dt)
                 if self.gameplay.life_lost:
                     if self.gameplay.game_over:
@@ -304,8 +326,9 @@ class Engine:
                         self.game_active = False
                         self._menu.show_game_over(self.score)
                     else:
-                        self.gameplay.reset_positions()
                         self.respawn_remaining = self.RESPAWN_DELAY
+                    self.respawn_remaining = self.RESPAWN_DELAY
+
                 elif (self.renderer.game_init and not self.renderer.revealing
                       and self.gameplay.level_complete):
                     self._advance_level()
@@ -317,11 +340,17 @@ class Engine:
         cleared at the start of every frame, so anything drawn after the
         flip is never shown.
         """
-        self.screen.fill((0, 0, 0) if self.respawn_remaining > 0
-                         and not self.pause else self.BACKGROUND)
+        black_screen = (not self.pause
+                        and 0 < self.respawn_remaining
+                        <= self.RESPAWN_BLACK_DURATION)
+        self.screen.fill((0, 0, 0) if black_screen else self.BACKGROUND)
         if self.pause:
             self._menu.draw(self.screen)
-        elif self.respawn_remaining <= 0 and self.renderer:
+        elif not black_screen and self.renderer:
+            flash_elapsed = self.RESPAWN_DELAY - self.respawn_remaining
+            self.renderer.pacman_flash_white = (
+                self.respawn_remaining > self.RESPAWN_BLACK_DURATION
+                and int(flash_elapsed / self.RESPAWN_FLASH_INTERVAL) % 2 == 0)
             self.renderer.draw(self.screen, dt)
             if self.gameplay:
                 self.gameplay.draw(self.screen)
