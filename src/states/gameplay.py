@@ -57,6 +57,10 @@ class Gameplay:
         self.renderer = renderer
         self.hud = Hud(renderer.assets)
         self.lives = max(0, min(self.MAX_LIVES, lives))
+        self.starting_lives = self.lives
+        self.invincible = False
+        self.immortality = False
+        self.flash_mode = False
         self.points = points
         self.fruits = 0
         self.current_level: int = level
@@ -111,8 +115,25 @@ class Gameplay:
         bool
             True if Pac-Man still has lives, False on game over.
         """
-        self.lives = max(0, self.lives - 1)
+        if self.immortality:
+            self.lives = self.starting_lives
+        else:
+            self.lives = max(0, self.lives - 1)
         return self.lives > 0
+
+    def set_cheat(self, name: str, enabled: bool) -> None:
+        """Set a cheat for this game, without changing its base speed."""
+        if name == "invincible":
+            self.invincible = enabled
+            self.collisions = CollisionSystem()
+        elif name == "immortality":
+            self.immortality = enabled
+            if enabled:
+                self.lives = self.starting_lives
+        elif name == "flash_mode":
+            self.flash_mode = enabled
+        else:
+            raise ValueError(f"Unknown cheat: {name!r}")
 
     def collect_fruit(self, points: int = 0) -> None:
         """Count a fruit eaten, optionally adding its points."""
@@ -169,7 +190,8 @@ class Gameplay:
             return
 
         game_map = self.renderer.map
-        max_speed = max([game_map.pacman.speed]
+        pacman_factor = 4.5 if self.flash_mode else 1.0
+        max_speed = max([game_map.pacman.speed * pacman_factor]
                         + [ghost.speed for ghost in game_map.ghosts])
         steps = max(1, ceil(max_speed * dt / 0.1))
         step_dt = dt / steps
@@ -180,7 +202,8 @@ class Gameplay:
                 break
             for ghost in game_map.ghosts:
                 ghost.behaviour(step_dt, game_map.pacman)
-            game_map.pacman.update_position(step_dt, game_map.maze)
+            game_map.pacman.update_position(
+                step_dt, game_map.maze, speed_multiplier=pacman_factor)
             if self._check_collisions():
                 break
         #if self.power_up_left is not None:
@@ -191,7 +214,8 @@ class Gameplay:
     def _check_collisions(self) -> bool:
         game_map = self.renderer.map
         contacts = self.collisions.check(
-            game_map.pacman, game_map.ghosts, game_map.pacgums,
+            game_map.pacman, [] if self.invincible else game_map.ghosts,
+            game_map.pacgums,
             game_map.super_pacgums)
         for gum in contacts.pacgums:
             gum.eaten = True

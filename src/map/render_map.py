@@ -36,7 +36,7 @@ class RenderMap:
         - ``pacman``: has ``position``.
         - ``pacgums``: iterable of items with ``position`` and an
           optional ``kind`` (``"dot"``, ``"power"``, ``"fruit"``,
-          ``"power-up"``, or any file name in ``assets/sprites``).
+          ``"power-up"``, or any file name in the selected sprite set).
         - ``ghosts``: iterable of items with ``position`` and optional
           ``frightened`` (bool), ``color`` (Colors), or ``hue`` (degrees).
 
@@ -45,7 +45,7 @@ class RenderMap:
         accepted in place of an object.
     assets : AssetManager
         Provides ``get_image(name, scale, group=...)``. Tiles are read
-        from ``map/<value>`` and sprites from ``sprites/<name>``.
+        from ``maps/<value>`` and sprites from the selected sprite set.
     size : tuple of int
         Pixel area ``(width, height)`` available for the map. The tile
         size is the largest that fits and the map is centered in it.
@@ -70,7 +70,7 @@ class RenderMap:
     """
     # ? Moved to another file with data.
     MAP_FOLDER = "maps"
-    SPRITE_FOLDER = "sprites"
+    SPRITE_FOLDER = "sprites/low"
     BACKGROUND = (0, 0, 0)
     BG_IMAGE = "maps/bg"
 
@@ -86,7 +86,7 @@ class RenderMap:
     GHOST_BODY_FRIGHTENED = "frightered-body"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     KIND_SPRITES = {
-        "dot": "pac-dots",
+        "dot": "dot",
         "power": "donut",
         "fruit": "cherry",
         "power-up": "coffee",
@@ -677,8 +677,11 @@ class RenderMap:
         sprite = self._sprites.get(key)
         if sprite is None:
             px = max(1, round(self.tile * self.SPRITE_SCALE.get(name, 1.0)))
+            asset_name = ("pacnab1" if name == "pacman1"
+                          and self.SPRITE_FOLDER == "sprites/hd" else name)
             sprite = self.assets.get_image(
-                f"{self.SPRITE_FOLDER}/{name}", (px, px), group="sprites")
+                f"{self.SPRITE_FOLDER}/{asset_name}", (px, px),
+                group="sprites")
             if hue:
                 sprite = tint_surface(sprite, hue=hue)
             self._sprites[key] = sprite

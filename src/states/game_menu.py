@@ -29,8 +29,7 @@ class GameMenu:
     functions : dict of str to callable
         Callbacks provided by the game. Required keys: ``"start"`` and
         ``"exit"``. Pause uses ``"resume"`` and optionally ``"get_scores"``.
-        Optional key: ``"set_option"``, called with the value
-        chosen in the configuration menu.
+        Configuration uses ``"get_settings"`` and ``"set_setting"``.
         Game-over screens also use ``"save_score"``, ``"return_to_main"``
         and ``"start"``.
     scores : list of str, optional
@@ -53,8 +52,18 @@ class GameMenu:
     BUTTON_SIZE = (220, 56)
     FOOTER_MARGIN = 124
     # ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
-    TITLE_COLOR = (0, 220, 0)
+    TITLE_COLOR = (64, 80, 100)
     SCORE_COLOR = (120, 120, 120)
+    BORDER_COLOR = (80, 180, 250)
+    BORDER_COLOR_PRESS = (40, 140, 220)
+    CONFIG_SIZE = (400, 56)
+    CONFIG_OPTIONS = (
+        ("graphics", ("SD", "HD")),
+        ("screen", ("Window", "Full")),
+        ("music", ()),
+        ("speed", (0.8, 1.0, 1.2)),
+        ("cheats", (False, True)),
+    )
     #BOTTOM_PADDIN = 80
 
     def __init__(self, size: tuple[int, int], font: Any, title_font: Any,
@@ -72,6 +81,7 @@ class GameMenu:
         self.final_score = 0
         self.player_name = ""
         self.game_over_status = ""
+        self._dragging_volume = False
         self.normal, self.active = self._make_images()
         self.normal, self.active = self._make_images()
         self.footer_y = self.HEIGHT - self.BUTTON_SIZE[1] - self.FOOTER_MARGIN
@@ -86,22 +96,24 @@ class GameMenu:
             "config": ("Configuration", self._make_config_menu),
             "score": ("Highest Score", self._make_score_menu),
             "pause": ("Pause menu", self._make_pause_menu),
+            "cheats": ("Cheat menu", self._make_cheat_menu),
             "game_over": ("Game Over", self._make_game_over_menu),
         }
         self.change_menu("main")
 
-    def _make_images(self) -> tuple[pygame.Surface, pygame.Surface]:
+    def _make_images(self, size: tuple[int, int] | None = None
+                     ) -> tuple[pygame.Surface, pygame.Surface]:
         """Build the normal/active button surfaces without asset files."""
         def build(fill: tuple[int, int, int],
                   border: tuple[int, int, int]) -> pygame.Surface:
-            image = pygame.Surface(self.BUTTON_SIZE, pygame.SRCALPHA)
+            image = pygame.Surface(size or self.BUTTON_SIZE, pygame.SRCALPHA)
             rect = image.get_rect()
             pygame.draw.rect(image, fill, rect, border_radius=10)
             pygame.draw.rect(image, border, rect, width=3, border_radius=10)
             return image
 
-        return build((30, 30, 30), (0, 150, 0)), build((15, 15, 15),
-                                                        (0, 255, 0))
+        return build((30, 30, 30), self.BORDER_COLOR), build((15, 15, 15),
+                                                        self.BORDER_COLOR_PRESS)
 
     # ---- menu factories ----------------------------------------------
     def _new_menu(self, items: list[str], actions: list[Callable[[], None]],
@@ -123,18 +135,59 @@ class GameMenu:
              self.functions["exit"]],
         )
 
-    # TODO Add options to configure from here like difficulto or whatever.
     def _make_config_menu(self) -> Menu:
         """Build the configuration menu."""
-        return self._new_menu(
-            ["resolution", "size", "cheats", "music", "Return"],
-            [lambda: self.set_option(3),
-             lambda: self.set_option(5),
-             lambda: self.set_option(10),
-             lambda: self.set_option(10),
-             lambda: self.change_menu("main")],
-            title_case=False,
-        )
+        normal, active = self._make_images(self.CONFIG_SIZE)
+        actions = [lambda index=index: self._adjust_config(index, 1)
+                   for index in range(len(self.CONFIG_OPTIONS))]
+        actions.append(lambda: self.change_menu("main"))
+        menu = Menu(self._config_labels() + ["Return"], actions,
+                    x=(self.WIDTH - self.CONFIG_SIZE[0]) // 2, y=120,
+                    image_normal=normal, image_active=active,
+                    font=self.font, title_case=False)
+        return menu
+
+    def _config_labels(self) -> list[str]:
+        settings = self.functions["get_settings"]()
+        speed = {0.8: "Slow", 1.0: "Medium", 1.2: "Fast"}[settings["speed"]]
+        return [f"Graphics: {settings['graphics']}",
+                f"Screen: {settings['screen']}",
+                f"Music Level: {settings['music']}%",
+                f"Speed: {speed}",
+                f"Cheat mode: {'On' if settings['cheats'] else 'Off'}"]
+
+    def _adjust_config(self, index: int, step: int) -> None:
+        name, choices = self.CONFIG_OPTIONS[index]
+        current = self.functions["get_settings"]()[name]
+        if name == "music":
+            value = max(0, min(100, current + step * 5))
+        else:
+            value = choices[(choices.index(current) + step) % len(choices)]
+        self.functions["set_setting"](name, value)
+        for button, label in zip(self.menu.buttons, self._config_labels()):
+            button.text = label
+
+    def _volume_rect(self) -> pygame.Rect:
+        rect = self.menu.buttons[2].rect
+        return pygame.Rect(rect.x + 35, rect.bottom - 12, rect.width - 70, 5)
+
+    def _set_volume_from_mouse(self, x: int) -> None:
+        rect = self._volume_rect()
+        value = round(max(0, min(rect.width, x - rect.left)) * 100 / rect.width)
+        self.functions["set_setting"]("music", value)
+        self.menu.buttons[2].text = self._config_labels()[2]
+
+    def resize(self, size: tuple[int, int]) -> None:
+        """Relayout the current menu after changing display mode."""
+        selected = self.menu.selected
+        self.WIDTH, self.HEIGHT = size
+        self.footer_y = self.HEIGHT - self.BUTTON_SIZE[1] - self.FOOTER_MARGIN
+        viewport = pygame.Rect(20, 100, self.WIDTH - 40,
+                               self.footer_y - 12 - 100)
+        self.instructions = Instructions(viewport, self.font, self.assets_dir)
+        self.menu = self.menus[self.current][1]()
+        self.menu.selected = min(selected, len(self.menu.buttons) - 1)
+        self.menu._sync_focus()
 
     def _make_score_menu(self) -> Menu:
         """Build the highest-score menu (scores are drawn in `draw`)."""
@@ -156,14 +209,37 @@ class GameMenu:
 
     def _make_pause_menu(self) -> Menu:
         """Build the pause menu."""
+        items = ["Return", "Instructions"]
+        actions = [self.functions["resume"],
+                   lambda: self.change_menu("instructions")]
+        if self.functions["get_settings"]()["cheats"]:
+            items.append("Cheat Menu")
+            actions.append(lambda: self.change_menu("cheats"))
+        items.append("Exit")
+        actions.append(self.functions["exit"])
+        return self._new_menu(items, actions, y=320, title_case=False)
+
+    def _cheat_labels(self) -> list[str]:
+        cheats = self.functions["get_cheats"]()
+        return [f"[{'x' if cheats[name] else ' '}] {label}"
+                for name, label in (("invincible", "Invincible"),
+                                    ("immortality", "Immortality"),
+                                    ("flash_mode", "Flash Mode"))]
+
+    def _make_cheat_menu(self) -> Menu:
         return self._new_menu(
-            ["Return", "Instructions", "Exit"],
-            [self.functions["resume"],
-             lambda: self.change_menu("instructions"),
-             self.functions["exit"]],
-            y=320,
-            title_case=False,
-        )
+            self._cheat_labels() + ["[ ] Next Level", "Return"],
+            [lambda: self._toggle_cheat("invincible"),
+             lambda: self._toggle_cheat("immortality"),
+             lambda: self._toggle_cheat("flash_mode"),
+             self.functions["next_level"],
+             lambda: self.change_menu("pause")],
+            title_case=False)
+
+    def _toggle_cheat(self, name: str) -> None:
+        self.functions["toggle_cheat"](name)
+        for button, label in zip(self.menu.buttons, self._cheat_labels()):
+            button.text = label
 
     def _make_game_over_menu(self) -> Menu:
         return self._new_menu(
@@ -201,15 +277,9 @@ class GameMenu:
         self.game_over_status = "Score saved."
 
     # ---- actions -----------------------------------------------------
-    def set_option(self, value: int) -> None:
-        """Report the chosen value to the game and go back to main."""
-        callback = self.functions.get("set_option")
-        if callback is not None:
-            callback(value)
-        self.change_menu("main")
-
     def change_menu(self, name: str) -> None:
         """Replace the displayed menu by the one registered as `name`."""
+        self._dragging_volume = False
         if name == "instructions":
             self.instructions_return = (
                 "pause" if getattr(self, "current", None) == "pause"
@@ -263,12 +333,36 @@ class GameMenu:
                 self.functions["resume"]()
             elif self.current == "instructions":
                 self.change_menu(self.instructions_return)
+            elif self.current == "cheats":
+                self.change_menu("pause")
             else:
                 self.change_menu("main")
             return True
         if self.current == "instructions" \
                 and self.instructions.handle_event(event):
             return True
+        if self.current == "config":
+            if event.type == pygame.KEYDOWN and event.key in (
+                    pygame.K_LEFT, pygame.K_RIGHT):
+                index = self.menu.selected
+                if index < len(self.CONFIG_OPTIONS):
+                    self._adjust_config(index, -1 if event.key == pygame.K_LEFT
+                                        else 1)
+                    return True
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 \
+                    and self.menu.buttons[2].rect.collidepoint(event.pos):
+                self.menu.hover(event.pos)
+                self._dragging_volume = True
+                self._set_volume_from_mouse(event.pos[0])
+                return True
+            if event.type == pygame.MOUSEMOTION and self._dragging_volume:
+                self._set_volume_from_mouse(event.pos[0])
+                return True
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1 \
+                    and self._dragging_volume:
+                self._dragging_volume = False
+                self._set_volume_from_mouse(event.pos[0])
+                return True
         return self.menu.handle_event(event)
 
     # * I can not manage to do scroll without this here
@@ -284,7 +378,13 @@ class GameMenu:
         if self.current == "instructions":
             self.instructions.draw(surface)
         self.menu.draw(surface)
-        if self.current == "score":
+        if self.current == "config":
+            rect = self._volume_rect()
+            pygame.draw.rect(surface, (60, 60, 60), rect)
+            fill = rect.copy()
+            fill.width = round(rect.width * self.functions["get_settings"]()["music"] / 100)
+            pygame.draw.rect(surface, self.TITLE_COLOR, fill)
+        elif self.current == "score":
             self._draw_scores(surface)
         elif self.current == "pause":
             self._draw_pause(surface)

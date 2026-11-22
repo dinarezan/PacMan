@@ -98,8 +98,8 @@ class Menu:
         image_active: Any,
         font: Any = None,
         spacing: int = 70,
-        text_color: tuple[int, int, int] = (0, 200, 0),
-        text_hover: tuple[int, int, int] = (0, 255, 0),
+        text_color: tuple[int, int, int] = (80, 180, 250),
+        text_hover: tuple[int, int, int] = (170, 220, 255),
         active_offset: tuple[int, int] = (0, 1),
         title_case: bool = True,
     ) -> None:

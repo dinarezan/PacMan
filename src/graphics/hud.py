@@ -18,7 +18,7 @@ class Hud:
     ----------
     assets : AssetManager
         Provides ``get_image(name, scale, group=...)``. Icons are read
-        from ``sprites/<name>``.
+        from the selected sprite set.
 
     Attributes
     ----------
@@ -38,9 +38,9 @@ class Hud:
     MARGIN = 24
     GAP = 8
     ICON_SIZE = 50
-    SPRITE_FOLDER = "sprites"
+    SPRITE_FOLDER = "sprites/low"
     LIVES_SPRITE = "pacman2"   # TODO Change for the heart
-    FRUIT_SPRITE = "fruit"
+    FRUIT_SPRITE = "cherry"
 
     PANEL_COLOR = (0, 0, 0, 150)
     TEXT_COLOR = (235, 235, 235)

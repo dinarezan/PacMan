@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 import pygame
 
 from src.entities import Map
@@ -33,13 +34,12 @@ class Engine:
         True while the menu is shown instead of the game.
     speed : float
         Game-time multiplier applied to the frame time (1.0 is normal).
-    option : int or None
-        Value chosen in the configuration menu, if any.
     """
 
 
     BACKGROUND = (10, 10, 10)
     RESPAWN_DELAY = 1.0
+    WINDOW_SIZE = (1280, 1000)
 
     # def __init__(self, config,
     #                  highscore_path: str = str(Path("data") / "highscores.json")):
@@ -48,7 +48,7 @@ class Engine:
         pygame.init()
         self.font = pygame.font.Font(None, 32)
         self.title_font = pygame.font.Font(None, 48)
-        self.screen = pygame.display.set_mode(read_screen_size())
+        self.screen = pygame.display.set_mode(self.WINDOW_SIZE)
         self.SCREEN_SIZE = self.screen.get_size()
         self.clock = pygame.time.Clock()
         self.speed = 1.0
@@ -58,9 +58,13 @@ class Engine:
         self.running = False
         self.pause = True
         self.game_active = False
-        self.option: int | None = None
         self.renderer: RenderMap | None = None
         self.respawn_remaining = 0.0
+        self.graphics = "SD"
+        self.screen_mode = "Window"
+        self.music_level = 100
+        self._volume_channels: int | None = None
+        self.cheats: bool = False
 
     # -- Init stuff ----------------------------------------------------
     def _pre_init(self) -> None:
@@ -71,11 +75,15 @@ class Engine:
         functions = {
             "start": self.start,
             "exit": self.exit_app,
-            "set_option": self.set_option,
+            "get_settings": self.get_settings,
+            "set_setting": self.set_setting,
             "save_score": self.save_score,
             "get_scores": self.get_scores,
             "return_to_main": self.return_to_main,
             "resume": self.resume,
+            "get_cheats": self.get_cheats,
+            "toggle_cheat": self.toggle_cheat,
+            "next_level": self.cheat_next_level,
         }
         self.running = True
         self._menu = GameMenu(
@@ -85,6 +93,7 @@ class Engine:
             functions=functions,
             path=ASSETS_DIR,
         )
+        self._sync_volume()
 
     def run(self) -> None:
         """Run the application."""
@@ -116,6 +125,7 @@ class Engine:
             points_per_super_pacgum=self.config.points_per_super_pacgum,
             ghosts_points=self.config.points_per_super_pacgum,
             )
+        self.gameplay.hud.SPRITE_FOLDER = self.renderer.SPRITE_FOLDER
         self.pause = False
         self.game_active = True
         self.score = 0
@@ -139,6 +149,8 @@ class Engine:
         renderer = RenderMap(game_map, self.assets, map_area,
                              origin=(0, Hud.TOP_HEIGHT),
                              screen_size=self.SCREEN_SIZE)
+        renderer.SPRITE_FOLDER = ("sprites/hd" if self.graphics == "HD"
+                                  else "sprites/low")
         renderer.load_map()
         renderer.start_reveal(1.5)
         return renderer
@@ -156,11 +168,72 @@ class Engine:
             renderer, self.config.levels[next_index].max_time)
         self.renderer = renderer
 
-    def set_option(self, value: int) -> None:
-        """Store the value chosen in the configuration menu."""
-        self.option = value
-        print(f"Option set to {value}")
-        # Difficult? Speed? Volumen? Cheat mode?
+    def get_settings(self) -> dict[str, object]:
+        return {"graphics": self.graphics, "screen": self.screen_mode,
+                "music": self.music_level, "speed": self.speed,
+                "cheats": self.cheats}
+
+    def set_setting(self, name: str, value: object) -> None:
+        """Apply a configuration change immediately."""
+        if name == "graphics" and value in ("SD", "HD"):
+            self.graphics = str(value)
+        elif name == "screen" and value in ("Window", "Full"):
+            mode = str(value)
+            size = self.WINDOW_SIZE if mode == "Window" else read_screen_size()
+            flags = 0 if mode == "Window" else pygame.FULLSCREEN
+            self.screen = pygame.display.set_mode(size, flags)
+            self.SCREEN_SIZE = self.screen.get_size()
+            self.screen_mode = mode
+            self._menu.resize(self.SCREEN_SIZE)
+        elif name == "music" and type(value) is int and 0 <= value <= 100:
+            self.music_level = value
+            self._volume_channels = None
+            if not pygame.mixer.get_init():
+                logging.getLogger(__name__).warning(
+                    "Audio mixer unavailable; volume will apply when initialized")
+            self._sync_volume()
+        elif name == "speed" and value in (0.8, 1.0, 1.2):
+            self.speed = float(value)
+        elif name == "cheats" and isinstance(value, bool):
+            self.cheats = value
+            if not value and self.game_active:
+                for cheat in self.get_cheats():
+                    self.gameplay.set_cheat(cheat, False)
+        else:
+            raise ValueError(f"Invalid setting {name!r}: {value!r}")
+
+    def get_cheats(self) -> dict[str, bool]:
+        return {"invincible": self.gameplay.invincible,
+                "immortality": self.gameplay.immortality,
+                "flash_mode": self.gameplay.flash_mode}
+
+    def toggle_cheat(self, name: str) -> None:
+        if not self.cheats or not self.game_active:
+            raise RuntimeError("Cheats require an active game and cheat mode")
+        cheats = self.get_cheats()
+        if name not in cheats:
+            raise ValueError(f"Unknown cheat: {name!r}")
+        self.gameplay.set_cheat(name, not cheats[name])
+
+    def cheat_next_level(self) -> None:
+        if not self.cheats or not self.game_active:
+            raise RuntimeError("Cheats require an active game and cheat mode")
+        self.respawn_remaining = 0.0
+        self._advance_level()
+        if self.game_active:
+            self._menu.show_pause(self.gameplay.points)
+
+    def _sync_volume(self) -> None:
+        if not pygame.mixer.get_init():
+            self._volume_channels = None
+            return
+        count = pygame.mixer.get_num_channels()
+        if self._volume_channels != count:
+            volume = self.music_level / 100
+            pygame.mixer.music.set_volume(volume)
+            for index in range(count):
+                pygame.mixer.Channel(index).set_volume(volume)
+            self._volume_channels = count
 
     def _play_theme(self) -> None:
         """Play the theme music."""
@@ -198,6 +271,7 @@ class Engine:
             # tick() caps the frame rate and returns the milliseconds
             # since the previous frame.
             dt = self.clock.tick(60) / 1000.0 * self.speed
+            self._sync_volume()
             self.event_loop()
             self.update(dt)
             self.draw(dt)

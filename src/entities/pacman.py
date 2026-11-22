@@ -17,6 +17,7 @@ class PacMan:
         self.powered_up: bool = False
         self.power_up_factor: float = 1
         self.timer: float = 0.0
+        self.invencibility: bool = False
 
     def power_up(self, factor: float) -> None:
         self.powered_up = True
@@ -33,7 +34,9 @@ class PacMan:
         self.heading = None
         self._next = None
 
-    def update_position(self, dt: float, maze: list[list[int]], power_up: tuple[float, float] = (1, 0)) -> None:
+    def update_position(self, dt: float, maze: list[list[int]],
+                        power_up: tuple[float, float] = (1, 0), *,
+                        speed_multiplier: float = 1.0) -> None:
         """Run pacman"""
 
         factor, duration = power_up
@@ -50,7 +53,7 @@ class PacMan:
 
         if self.powered_up:
             self.speed *= self.power_up_factor
-        remaining = self.speed * dt # distance (in cells) to travel this frame
+        remaining = self.speed * speed_multiplier * dt
         while remaining > 10e-9:
             if self._next is None:
                 x, y = self.cell
