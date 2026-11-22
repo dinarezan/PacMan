@@ -294,9 +294,8 @@ class Gameplay:
 
         #if total_left < 20:
         #    game_map.fruits
-
-        for ghost in contacts.ghosts:
-            if self.time_left:
+        for ghost in game_map.ghosts:
+            if self.time_up:
                 ghost.state = State.NIGHTMARE
                 continue
             if ghost == Blinky and total_left < 10:
@@ -306,6 +305,7 @@ class Gameplay:
                 else:
                     Blinky.speed = 1
 
+        for ghost in contacts.ghosts:
             if ghost.state == State.FRIGHTENED:
                 ghost.start_respawn(self.RESPAWN_TIME)
                 self.add_points(self.points_per_ghost)
@@ -323,6 +323,7 @@ class Gameplay:
         game_map.pacman.reset_position()
         for ghost in game_map.ghosts:
             ghost.reset_position()
+            ghost.state = ghost._default_state
         self.collisions = CollisionSystem()
         self.collisions.check(game_map.pacman, game_map.ghosts,
                               game_map.pacgums, game_map.super_pacgums)
