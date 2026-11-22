@@ -96,6 +96,7 @@ class SuperPacGum(PacGum):
     def __init__(self, position: tuple[int, int], points: int):
         super().__init__(position, points)
 
+
 class PacGumFactory:
     @staticmethod
     def create(

@@ -7,7 +7,7 @@ from math import ceil, hypot
 from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
-from src.entities.ghost import Ghost, State
+from src.entities.ghost import Ghost, State, Blinky
 
 
 class Gameplay:
@@ -281,12 +281,27 @@ class Gameplay:
         for sup in contacts.super_pacgums:
             sup.eaten = True
             self.add_points(self.points_per_super_pacgum)
-            # ^ --  Ghost Frightened -------------------------.
             for ghost in game_map.ghosts:
                 if ghost.state not in (State.EATEN, State.WAITING):
                     ghost.state = State.FRIGHTENED
                     ghost.frightened_time = self.FRIGHTENED_TIME
+
+        # --  Ghosts States Updating  -------------------------------
+        pacgums = game_map.pacgums
+        total_left = sum(
+            1 for pacgum in pacgums if not getattr(pacgum, "eaten", None) == False)
+
+        #if total_left < 20:
+        #    game_map.fruits
+
         for ghost in contacts.ghosts:
+            if ghost == Blinky and total_left < 10:
+                Blinky.state = State.FURY
+                if total_left < 5:
+                    Blinky.speed = 1.1
+                else:
+                    Blinky.speed = 1
+
             if ghost.state == State.FRIGHTENED:
                 ghost.start_respawn(self.RESPAWN_TIME)
                 self.add_points(self.points_per_ghost)
