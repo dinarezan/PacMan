@@ -51,6 +51,7 @@ class Ghost(ABC):
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
         self.speed: float = speed  #cells per s
+        self.default_speed: float = speed
         self.color: Colors
         self._maze: list[list[int]] = maze
         self.eyes: int = 4
@@ -70,6 +71,7 @@ class Ghost(ABC):
         self.state = self._default_state
         self.frightened_time = 0.0
         self.respawn_time = 0.0
+        self.speed = self.default_speed
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -154,6 +156,8 @@ class Ghost(ABC):
                 break
 
     def nightmare_hunt(self, dt: float, pacman: PacMan) -> None:
+        if self.speed < 9:
+            self.speed *= 1.005
         target = pacman.position
         remaining = self.speed * dt
         while remaining > 10e-9:
@@ -282,7 +286,8 @@ class Punky(Ghost):
         if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
-            self.speed = 0.9
+            if self.state != State.NIGHTMARE:
+                self.speed = 0.9
             self.default_behaviour(dt, pacman)  
 
 
