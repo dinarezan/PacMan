@@ -30,9 +30,9 @@
 -- The Shadow
 color: Red
 Behavior: 
-    Leader, always chasing pacman
-    (Pathfinder to pacman pos)
-    Accelerate when are less pacgums or pellers.
+    Accelerate when are less pacgums or pellers.\
+	Random movement for x seconds, than chase.
+	When accelerate than chase only.
 
 **Pinky**
 -- The Speedy

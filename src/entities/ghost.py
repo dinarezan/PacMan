@@ -18,6 +18,7 @@ class State(Enum):
     WAITING = "waiting"     # after returned into his corner for respam B do nothing in the corner
     SLEEP = "sleep"         # bEFORE START B do nothing
     NIGHTMARE = "nightmare" # Nightmare, Dina, NIGHTMARE!! B
+    FURY = "fury"
 
 
 def get_neighbours(position: tuple[int, int], maze: list[list[int]]) -> list[tuple[int, int]]:
@@ -50,6 +51,7 @@ class Ghost(ABC):
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
         self.speed: float = speed  #cells per s
+        self.default_speed: float = speed
         self.color: Colors
         self._maze: list[list[int]] = maze
         self.eyes: int = 4
@@ -69,6 +71,7 @@ class Ghost(ABC):
         self.state = self._default_state
         self.frightened_time = 0.0
         self.respawn_time = 0.0
+        self.speed = self.default_speed
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -153,6 +156,8 @@ class Ghost(ABC):
                 break
 
     def nightmare_hunt(self, dt: float, pacman: PacMan) -> None:
+        if self.speed < 9:
+            self.speed *= 1.005
         target = pacman.position
         remaining = self.speed * dt
         while remaining > 10e-9:
@@ -223,13 +228,47 @@ class Ghost(ABC):
 
 
 class Blinky(Ghost):
+    """Leader, always chasing pacman following BFS.
+     Accelerates when there are less pacgums."""
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 points: int, speed: float = 0.9):
+        super().__init__(pos, maze, points, speed)
+        self.state: State = State.SCATTER
+        self._default_state: State = State.SCATTER
+        self.color: Colors = Colors.RED
+        self.timer: float = 0.0
+        self.state_duration: float = 10
+        self.fury: bool = False
+
+    def behaviour(self, dt: float, pacman: PacMan):
+        if self.fury is True:
+            self.state = State.CHASE
+        self.timer += dt
+        if self.timer >= self.state_duration and self.state == State.SCATTER:
+            self.state = State.CHASE
+            self.timer = 0.0
+        elif self.timer >= self.state_duration and self.state == State.CHASE:
+            self.state = State.SCATTER
+            self.timer = 0.0
+        else:
+            pass
+
+        if self.state == State.CHASE:
+            self.hunt_target(dt, self._path_to_target, pacman.cell)
+        else:
+            self.default_behaviour(dt, pacman)
+
+
+class Punky(Ghost):
+    """Moves randomly until finds himself in the chase radius from pacman.
+    Then hunts him with BFS."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
                  points: int, speed: float = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self._chase_radius: int = chase_rad
-        self.color: Colors = Colors.RED
+        self.color: Colors = Colors.MAGENTA
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
         self._rand_target = self._generate_random_target() # IMPORTANT! prevents alternating between pacman and random target hunt
@@ -239,22 +278,27 @@ class Blinky(Ghost):
         dist_to_pacman = dist(self.map_pos, pacman.position)
         if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
             self.state = State.CHASE
+            self.speed = 2.0
         elif dist_to_pacman > self._chase_radius and self.state == State.CHASE:
             self.state = State.SCATTER
+            self.speed = 0.9
 
         if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
+            if self.state != State.NIGHTMARE:
+                self.speed = 0.9
             self.default_behaviour(dt, pacman)  
 
 
 class Pinky(Ghost):
-    def __init__(self, pos: tuple[int, int], maze: list[list[int]], points: int,
-                 speed: int = 0.9, chase_rad: int = 5):
+    """Tries to intercept pacman by coming in front of him.
+     If pacman is not moving, he hunts him by following BFS."""
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 points: int, speed: int = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
-        self._chase_radius: int = chase_rad
         self.color: Colors = Colors.PINK
         random.seed()
 
@@ -273,10 +317,35 @@ class Pinky(Ghost):
             self.default_behaviour(dt, pacman)
 
 
+class Clyde(Ghost):
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                    points: int, speed: int = 0.9):
+        super().__init__(pos, maze, points, speed)
+        self.state: State = State.CHASE
+        self._default_state: State = State.CHASE
+        self.color: Colors = Colors.ORANGE
+        self.corner: tuple[int, int] = (len(self._maze) - 1, 0)
+
+    def behaviour(self, dt: float, pacman: PacMan):
+        if self.state == State.CHASE:
+            dist_to_pacman = len(self._path_to_target(pacman.cell))
+            dist_to_corner = len(self._path_to_target(self.corner))
+            if dist_to_pacman <= 5 and dist_to_corner < 2:
+                self._random_movement(dt)
+            elif dist_to_pacman > 5:
+                self.hunt_target(dt, self._path_to_target, pacman.cell)
+            else:
+                self.hunt_target(dt, self._path_to_target, self.corner)
+        else:
+            self.default_behaviour(dt, pacman)
+
+
 class GhostFactory:
     registry: dict[str, type[Ghost]] = {
         "blinky": Blinky,
-        "pinky": Pinky
+        "pinky": Pinky,
+        "punky": Punky,
+        "clyde": Clyde
     }
 
     def create(self, base_ghosts: list[dict[str, tuple[int, int]]], maze: list[list[int]], points: int) -> list[Ghost]:
