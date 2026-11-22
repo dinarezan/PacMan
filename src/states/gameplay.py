@@ -296,7 +296,7 @@ class Gameplay:
 
         for ghost in contacts.ghosts:
             if ghost == Blinky and total_left < 10:
-                Blinky.state = State.FURY
+                Blinky.fury = True
                 if total_left < 5:
                     Blinky.speed = 1.1
                 else:
