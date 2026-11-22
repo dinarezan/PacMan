@@ -218,6 +218,7 @@ class Gameplay:
         if not self.time_up:
             self.time_left = max(0.0, self.time_left - dt)
             self.time_up = self.time_left == 0.0
+
         if self.renderer.revealing:
             return
 
@@ -295,6 +296,9 @@ class Gameplay:
         #    game_map.fruits
 
         for ghost in contacts.ghosts:
+            if self.time_left:
+                ghost.state = State.NIGHTMARE
+                continue
             if ghost == Blinky and total_left < 10:
                 Blinky.fury = True
                 if total_left < 5:

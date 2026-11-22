@@ -85,6 +85,8 @@ class RenderMap:
     GHOST_SPRITE = "body"
     GHOST_BODY_FRIGHTENED = "frightered-body"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
+    NIGHTMARE_BODY = "nightmare_body"
+    NIGHTMARE_EYES = "nightmare_eyes"
     KIND_SPRITES = {
         "dot": "dot",
         "power": "donut",
@@ -640,7 +642,7 @@ class RenderMap:
                 return self._sprite(f"eyes_{eyes}")
         body = self._ghost_body(ghost)
         key = (body, eyes)
-        sprite =  self._ghost_composites.get(key)
+        sprite = self._ghost_composites.get(key)
         if sprite is None:
             sprite = body.copy()
             sprite.blit(self._sprite(f"eyes_{eyes}"), (0, 0))
@@ -649,6 +651,8 @@ class RenderMap:
 
     def _ghost_body(self, ghost: Ghost) -> pygame.Surface:
         color = getattr(ghost, "color", None)
+        if ghost.state == State.NIGHTMARE:
+            return self._sprite(self.NIGHTMARE_BODY)
         if ghost.state == State.FRIGHTENED:
             return self._sprite(self.GHOST_BODY_FRIGHTENED)
         if color is None:

@@ -16,3 +16,16 @@ lvl 7-8     Melon = 1000
 lvl 9-10    Ship = 2000
 lvl 11-12   bell = 3000
 lvl >=13    key = 5000
+
+
+
+    this.fruits = [
+        {name:'cherry',     points:100},
+        {name:'strawberry', points:300},
+        {name:'orange',     points:500},
+        {name:'apple',      points:700},
+        {name:'melon',      points:1000},
+        {name:'galaxian',   points:2000},
+        {name:'bell',       points:3000},
+        {name:'key',        points:5000},
+    ];
