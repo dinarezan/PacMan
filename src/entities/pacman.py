@@ -14,8 +14,17 @@ class PacMan:
         self._next: tuple[int, int] | None = None
         self.speed: float = 1.8
         self.size: float = 1.0
-        self.power_up: bool = False
-        self.power_up_factor: float = 1.5
+        self.powered_up: bool = False
+        self.power_up_factor: float = 1
+        self.timer: float = 0.0
+
+    def power_up(self, factor: float) -> None:
+        self.powered_up = True
+        self.power_up_factor = factor
+
+    def power_off(self) -> None:
+        self.powered_up = False
+        self.power_up_factor = 1
 
     def reset_position(self) -> None:
         self.position = self.spawn_pos
@@ -24,14 +33,22 @@ class PacMan:
         self.heading = None
         self._next = None
 
-    def update_position(self, dt: float, maze: list[list[int]]) -> None:
+    def update_position(self, dt: float, maze: list[list[int]], power_up: tuple[float, float] = (1, 0)) -> None:
         """Run pacman"""
+
+        factor, duration = power_up
+        self.timer += dt
+        if factor != 1 and duration != 0:
+            self.power_up(factor)
+            self.timer = 0.0
+        if self.timer >= duration:
+            self.power_off()
 
         if self._next and self.wanted == (self.heading + 2) % 4: #wanted direction is opposite
             self.cell, self._next = self._next, self.cell
             self.heading = self.wanted
 
-        if self.power_up:
+        if self.powered_up:
             self.speed *= self.power_up_factor
         remaining = self.speed * dt # distance (in cells) to travel this frame
         while remaining > 10e-9:
