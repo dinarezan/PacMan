@@ -2,7 +2,7 @@ from pydantic import BaseModel, model_validator, Field
 from enum import Enum
 from typing import Self
 
-GHOST_TYPES = ("blinky", "pinky", "inky", "clyde")
+GHOST_TYPES = ("blinky", "pinky", "punky", "clyde")
 
 
 class BaseGhost(BaseModel):
@@ -13,6 +13,7 @@ class BaseGhost(BaseModel):
     def name_validator(self) -> Self:
         if self.name.lower() not in GHOST_TYPES:
             raise ValueError("Non-existent ghost type")
+        self.name = self.name.lower()
         return self
 
 

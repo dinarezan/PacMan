@@ -21,6 +21,7 @@ class PacMan:
     def power_up(self, factor: float) -> None:
         self.powered_up = True
         self.power_up_factor = factor
+        self.timer = 0.0
 
     def power_off(self) -> None:
         self.powered_up = False
@@ -40,7 +41,6 @@ class PacMan:
         self.timer += dt
         if factor != 1 and duration != 0:
             self.power_up(factor)
-            self.timer = 0.0
         if self.timer >= duration:
             self.power_off()
 
