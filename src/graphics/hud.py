@@ -5,6 +5,8 @@ from typing import Any
 
 import pygame
 
+from src.graphics.sprite_utils import tint_surface
+
 
 class Hud:
     """
@@ -30,7 +32,7 @@ class Hud:
     ------
     Top:    ``SCORE 000120`` (left)                ``TIME 87`` (right)
     Bottom: Pac-Man icons, one per life (left)
-            ``[active bonus]  [fruit] x3`` (right)
+            ``[dash]  [fruit] x3`` (right)
     """
 
     TOP_HEIGHT = 64
@@ -39,8 +41,9 @@ class Hud:
     GAP = 8
     ICON_SIZE = 50
     SPRITE_FOLDER = "sprites/low"
-    LIVES_SPRITE = "pacman2"   # TODO Change for the heart
+    LIVES_SPRITE = "heart"
     FRUIT_SPRITE = "cherry"
+    DASH_SPRITE = "dash"
 
     PANEL_COLOR = (0, 0, 0, 150)
     TEXT_COLOR = (235, 235, 235)
@@ -53,6 +56,7 @@ class Hud:
         self.assets = assets
         self.font = pygame.font.Font(None, 44)
         self._icons: dict[str, pygame.Surface] = {}
+        self._dash_gray: pygame.Surface | None = None
         self._panels: dict[tuple[int, int], pygame.Surface] = {}
 
     # ------------------------------------------------------------------
@@ -111,6 +115,13 @@ class Hud:
         x -= self.GAP + size
         screen.blit(self._icon(self.FRUIT_SPRITE),
                     (x, center_y - size // 2))
+        x -= self.GAP + size
+        dash = self._icon(self.DASH_SPRITE)
+        if gameplay.dash_cooldown_remaining > 0:
+            if self._dash_gray is None:
+                self._dash_gray = tint_surface(dash, saturation=0.0)
+            dash = self._dash_gray
+        screen.blit(dash, (x, center_y - size // 2))
 
         # Active bonus ☕: to the left of the fruits, with remaining time.
         #if gameplay.power_up:

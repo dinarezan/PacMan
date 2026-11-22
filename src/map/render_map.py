@@ -156,6 +156,8 @@ class RenderMap:
         self._pacman_images: dict[tuple[str, int | None],
                                   pygame.Surface] = {}
         self._pacman_last_look = 4
+        self.dash_active = False
+        self.dash_trail: list[tuple[float, float]] = []
         self.revealing = False
         self._time = 0.0
         self.game_init = False
@@ -519,34 +521,28 @@ class RenderMap:
         for sprite, position, height in ghosts:
             self._blit(screen, sprite, position, lift=height)
 
-    # ! ADD here new shadow on other elements
-    #def _draw_shadows(self, screen: pygame.Surface) -> None:
-    #    """Draw the resting shadow of every pacgum and ghost."""
-    #    for item in getattr(self.map, "pacgums", ()):
-    #        kind = getattr(item, "kind", "dot")
-    #        sprite = self._sprite(self.KIND_SPRITES.get(kind, kind))
-    #        self._draw_shadow(screen, getattr(item, "position", item),
-    #                          sprite, strength=0.7)
-    #    #for ghost in getattr(self.map, "ghosts", ()):
-    #    #    self._draw_shadow(screen, getattr(ghost, "position", ghost),
-    #    #                      self._ghost_sprite(ghost))
-
-    #    pacman = getattr(self.map, "pacman", ())
-    #    #self._draw_shadow(screen, getattr(pacman, "position", pacman),
-    #    #                  self._sprite(self.PACMAN_SPRITE), strength=1.0,
-    #    #                  size=(50, 70))
-
     def _draw_pacman(self, screen: pygame.Surface) -> None:
         """Draw Pac-Man."""
         pacman = getattr(self.map, "pacman", None)
         if pacman is not None:
+            sprite = self._pacman_sprite(pacman)
+            if self.dash_active:
+                for index, position in enumerate(self.dash_trail):
+                    afterimage = sprite.copy()
+                    afterimage.set_alpha(
+                        round(120 * (index + 1) / len(self.dash_trail)))
+                    self._blit(screen, afterimage, position)
+                glow = pygame.Surface((self.tile, self.tile), pygame.SRCALPHA)
+                pygame.draw.ellipse(glow, (240, 255, 255, 180),
+                                    glow.get_rect(), width=max(2, self.tile // 20))
+                self._blit(screen, glow, pacman.position)
             self._draw_shadow(screen, getattr(pacman, "position", pacman),
                               self._sprite(self.PACMAN_SPRITE), strength=1.0,
                               size=(100, 70))
             self._draw_shadow(screen, getattr(pacman, "position", pacman),
                               self._sprite(self.PACMAN_SPRITE), strength=1.0,
                               size=(50, 70))
-            self._blit(screen, self._pacman_sprite(pacman),
+            self._blit(screen, sprite,
                        getattr(pacman, "position", pacman))
 
     def _draw_pacgums(self, screen: pygame.Surface) -> None:

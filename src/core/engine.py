@@ -205,7 +205,8 @@ class Engine:
     def get_cheats(self) -> dict[str, bool]:
         return {"invincible": self.gameplay.invincible,
                 "immortality": self.gameplay.immortality,
-                "flash_mode": self.gameplay.flash_mode}
+                "flash_mode": self.gameplay.flash_mode,
+                "no_dash_cooldown": self.gameplay.no_dash_cooldown}
 
     def toggle_cheat(self, name: str) -> None:
         if not self.cheats or not self.game_active:

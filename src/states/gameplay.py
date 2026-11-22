@@ -3,7 +3,7 @@ import pygame
 
 from typing import Any
 import time
-from math import ceil
+from math import ceil, hypot
 from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
@@ -43,6 +43,9 @@ class Gameplay:
     MAX_LIVES = 5
     FRIGHTENED_TIME = 10.0
     RESPAWN_TIME = 10.0
+    DASH_DURATION = 0.8
+    DASH_COOLDOWN = 15.0
+    DASH_SPEED = 10.0
 
     def __init__(self,
                  renderer: RenderMap,
@@ -61,6 +64,9 @@ class Gameplay:
         self.invincible = False
         self.immortality = False
         self.flash_mode = False
+        self.no_dash_cooldown = False
+        self.dash_remaining = 0.0
+        self.dash_cooldown_remaining = 0.0
         self.points = points
         self.fruits = 0
         self.current_level: int = level
@@ -90,6 +96,7 @@ class Gameplay:
 
     def advance_level(self, renderer: RenderMap, max_time: float) -> None:
         """Switch maps while preserving the player's accumulated progress."""
+        self._end_dash()
         self.renderer = renderer
         self.current_level += 1
         self.max_time = float(max_time)
@@ -132,6 +139,10 @@ class Gameplay:
                 self.lives = self.starting_lives
         elif name == "flash_mode":
             self.flash_mode = enabled
+        elif name == "no_dash_cooldown":
+            self.no_dash_cooldown = enabled
+            if enabled:
+                self.dash_cooldown_remaining = 0.0
         else:
             raise ValueError(f"Unknown cheat: {name!r}")
 
@@ -167,6 +178,27 @@ class Gameplay:
         self.time_left = self.max_time
         self.time_up = False
 
+    def _start_dash(self) -> None:
+        if self.dash_cooldown_remaining > 0:
+            return
+        self.dash_remaining = self.DASH_DURATION
+        self.dash_cooldown_remaining = (
+            0.0 if self.no_dash_cooldown else self.DASH_COOLDOWN)
+        self.renderer.dash_active = True
+        self.renderer.dash_trail = []
+
+    def _end_dash(self) -> None:
+        self.dash_remaining = 0.0
+        self.renderer.dash_active = False
+        self.renderer.dash_trail = []
+
+    def _record_dash_position(self, position: tuple[float, float]) -> None:
+        trail = self.renderer.dash_trail
+        if not trail or hypot(position[0] - trail[-1][0],
+                              position[1] - trail[-1][1]) >= 0.3:
+            trail.append(position)
+            del trail[:-6]
+
     def update(self, dt: float) -> None:
         """
         Advance the timers and active gameplay.
@@ -189,23 +221,47 @@ class Gameplay:
         if self.renderer.revealing:
             return
 
+        self.dash_cooldown_remaining = max(
+            0.0, self.dash_cooldown_remaining - dt)
+        if self.dash_cooldown_remaining < 1e-9:
+            self.dash_cooldown_remaining = 0.0
+        if self._check_collisions() or self.life_lost:
+            return
+        dash_time = min(dt, self.dash_remaining)
+        if dash_time > 0:
+            completed = self._move(dash_time, dashing=True)
+            self.dash_remaining = max(0.0, self.dash_remaining - dash_time)
+            if self.dash_remaining < 1e-9:
+                self._end_dash()
+                if not completed and (self._check_collisions()
+                                      or self.life_lost):
+                    return
+            if self.life_lost or completed:
+                return
+        if dt > dash_time:
+            self._move(dt - dash_time, dashing=False)
+
+    def _move(self, dt: float, dashing: bool) -> bool:
         game_map = self.renderer.map
-        pacman_factor = 4.5 if self.flash_mode else 1.0
+        pacman_factor = (4.5 if self.flash_mode else 1.0)
+        if dashing:
+            pacman_factor *= self.DASH_SPEED
         max_speed = max([game_map.pacman.speed * pacman_factor]
                         + [ghost.speed for ghost in game_map.ghosts])
         steps = max(1, ceil(max_speed * dt / 0.1))
         step_dt = dt / steps
-        if self._check_collisions():
-            return
         for _ in range(steps):
             if self.life_lost:
                 break
             for ghost in game_map.ghosts:
                 ghost.behaviour(step_dt, game_map.pacman)
+            if dashing:
+                self._record_dash_position(game_map.pacman.position)
             game_map.pacman.update_position(
                 step_dt, game_map.maze, speed_multiplier=pacman_factor)
             if self._check_collisions():
-                break
+                return True
+        return False
         #if self.power_up_left is not None:
         #    self.power_up_left -= dt
         #    if self.power_up_left <= 0:
@@ -214,7 +270,9 @@ class Gameplay:
     def _check_collisions(self) -> bool:
         game_map = self.renderer.map
         contacts = self.collisions.check(
-            game_map.pacman, [] if self.invincible else game_map.ghosts,
+            game_map.pacman,
+            [] if self.invincible or self.dash_remaining > 0
+            else game_map.ghosts,
             game_map.pacgums,
             game_map.super_pacgums)
         for gum in contacts.pacgums:
@@ -241,6 +299,7 @@ class Gameplay:
             and self.level_complete
 
     def reset_positions(self) -> None:
+        self._end_dash()
         game_map = self.renderer.map
         game_map.pacman.reset_position()
         for ghost in game_map.ghosts:
@@ -268,7 +327,12 @@ class Gameplay:
             pacman = self.renderer.map.pacman
             #if pacman.speed ==
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_w, pygame.K_UP):
+                if event.key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
+                    if (not self.renderer.revealing and not self.game_over
+                            and not getattr(event, "repeat", False)):
+                        self._start_dash()
+                    return True
+                elif event.key in (pygame.K_w, pygame.K_UP):
                     pacman.wanted = 0
                     return True
                 elif event.key in (pygame.K_d, pygame.K_RIGHT):

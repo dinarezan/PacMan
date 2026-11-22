@@ -9,6 +9,7 @@ import pygame
 # (keys, description)  # ?? Optional add key for cheats or input chat
 CONTROLS = [
     ("Arrow keys / W A S D", "Move Pac-Man up, down, left and right."),
+    ("Shift", "Dash at 10x speed and ignore ghosts for 0.8 seconds (15s cooldown)."),
     ("Enter", "Select the highlighted menu option."),
     ("Up / Down", "Move through the menu options or scroll a screen."),
     ("A / S", "Move through the menu options or scroll a screen."),

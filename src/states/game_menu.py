@@ -224,17 +224,23 @@ class GameMenu:
         return [f"[{'x' if cheats[name] else ' '}] {label}"
                 for name, label in (("invincible", "Invincible"),
                                     ("immortality", "Immortality"),
-                                    ("flash_mode", "Flash Mode"))]
+                                    ("flash_mode", "Flash Mode"),
+                                    ("no_dash_cooldown",
+                                     "Disable dash cooldown"))]
 
     def _make_cheat_menu(self) -> Menu:
-        return self._new_menu(
+        normal, active = self._make_images(self.CONFIG_SIZE)
+        return Menu(
             self._cheat_labels() + ["[ ] Next Level", "Return"],
             [lambda: self._toggle_cheat("invincible"),
              lambda: self._toggle_cheat("immortality"),
              lambda: self._toggle_cheat("flash_mode"),
+             lambda: self._toggle_cheat("no_dash_cooldown"),
              self.functions["next_level"],
              lambda: self.change_menu("pause")],
-            title_case=False)
+            x=(self.WIDTH - self.CONFIG_SIZE[0]) // 2, y=120,
+            image_normal=normal, image_active=active,
+            font=self.font, title_case=False)
 
     def _toggle_cheat(self, name: str) -> None:
         self.functions["toggle_cheat"](name)
