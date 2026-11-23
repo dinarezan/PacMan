@@ -230,8 +230,8 @@ class Ghost(ABC):
 
 
 class Blinky(Ghost):
-    """Leader, always chasing pacman following BFS.
-     Accelerates when there are less pacgums."""
+    """Leader, alternating between chasing pacman and random movement every 10 second.
+     When there are less pacgums switches to chase only and accelerates."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
                  points: int, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
@@ -302,7 +302,6 @@ class Pinky(Ghost):
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
         self.color: Colors = Colors.PINK
-        random.seed()
 
     def _intercept_target(self, dt: float, pacman: PacMan) -> None:
         target = pacman._next
@@ -320,13 +319,15 @@ class Pinky(Ghost):
 
 
 class Clyde(Ghost):
+    """Goes towards pacman but runs to corner when he's close to him.
+     If he is both close to corner and to pacman, hunts pacman."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
                     points: int, speed: int = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
         self.color: Colors = Colors.ORANGE
-        self.corner: tuple[int, int] = (len(self._maze) - 1, 0)
+        self.corner: tuple[int, int] = (0, len(maze) - 1)
 
     def behaviour(self, dt: float, pacman: PacMan):
         if self.state == State.CHASE:
@@ -337,9 +338,70 @@ class Clyde(Ghost):
             elif dist_to_pacman > 5:
                 self.hunt_target(dt, self._path_to_target, pacman.cell)
             else:
-                self.hunt_target(dt, self._path_to_target, self.corner)
+                self.hunt_target(dt, self._intercepting_path_to_target, self.corner, pacman.cell)
         else:
             self.default_behaviour(dt, pacman)
+
+
+class Funky(Ghost):
+    """When in range of chase radius and horizontally aligned with pacman, can jump over the wall."""
+    def __init__(self, pos: tuple[int, int], maze: list[list[int]],
+                 points: int, speed: int = 0.9, chase_rad: int = 5):
+        super().__init__(pos, maze, points, speed)
+        self.state: State = State.SCATTER
+        self._default_state: State = State.SCATTER
+        self.color: Colors = Colors.GREEN
+        self._chase_radius: int = chase_rad
+        self.jumping: bool = False
+        self.target: tuple[int, int] | None = None
+
+    def _jump_over(self, dt: float, target: tuple[int, int]) -> None:
+        remaining = self.speed * dt
+        dx, dy = target[0] - self.map_pos[0], target[1] - self.map_pos[1]
+        dist = hypot(dx, dy)
+        if dist <= remaining:
+            self.map_pos = (float(target[0]), float(target[1]))
+            self.position = target
+            self._next = None
+            self.jumping = False
+            self.target = None
+            self.eyes = 4
+            return
+        else:
+            f = remaining / dist
+            self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
+
+    def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+        if not self.jumping:
+            # nearest cell to where he really is, even in the middle of a step
+            here = (round(self.map_pos[0]), round(self.map_pos[1]))
+            aligned = here[1] == pacman_pos[1] and here[0] != pacman_pos[0]
+            if aligned:
+                step = 1 if pacman_pos[0] > here[0] else -1
+                tx = here[0] + step
+                if 0 <= tx < len(self._maze[0]):
+                    self.target = (tx, here[1])
+                    self.jumping = True
+                    self.eyes = DIRS[(step, 0)]
+
+        if self.jumping:
+            self._jump_over(dt, self.target)
+        else:
+            self.hunt_target(dt, self._path_to_target, pacman_pos)
+
+
+    def behaviour(self, dt: float, pacman: PacMan):
+        dist_to_pacman = dist(self.map_pos, pacman.position)
+        if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
+            self.state = State.CHASE
+        elif dist_to_pacman > self._chase_radius and \
+            self.state == State.CHASE and not self.jumping:
+            self.state = State.SCATTER
+
+        if self.state == State.CHASE:
+            self._chase(dt, pacman.cell)
+        else:
+            self.default_behaviour(dt, pacman)   
 
 
 class GhostFactory:
@@ -347,7 +409,8 @@ class GhostFactory:
         "blinky": Blinky,
         "pinky": Pinky,
         "punky": Punky,
-        "clyde": Clyde
+        "clyde": Clyde,
+        "funky": Funky
     }
 
     def create(self, base_ghosts: list[dict[str, tuple[int, int]]], maze: list[list[int]], points: int) -> list[Ghost]:

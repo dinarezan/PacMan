@@ -2,41 +2,37 @@
 	"levels": [
 		{
 			"width": 10,
-			"height": 6,
-			"pacgum": 12,
-			"ghosts": [
-				{
-					"name": "pinky",
-					"position": [0, 5]
-				},
-				{
-					"name": "blinky",
-					"position": [0, 0]
-				}
-			],
-			"max_time": 120,
-			"seed": 12
-		},
-		{
-			"width": 15,
-			"height": 15,
+			"height": 10,
 			"pacgum": 42,
 			"ghosts": [
 				{
+					"name": "funky",
+					"position": [0, 0]
+				}
+			],
+			"max_time": 100,
+			"seed": 42
+		},
+		{
+			"width": 10,
+			"height": 10,
+			"pacgum": 200,
+			"ghosts": [
+				{
 					"name": "blinky",
 					"position": [0, 0]
 				},
 				{
 					"name": "pinky",
-					"position": [14, 14]
+					"position": [9, 9]
 				},
 				{
 					"name": "clyde",
-					"position": [14, 0]
+					"position": [9, 0]
 				},
 				{
 					"name": "punky",
-					"position": [0, 14]
+					"position": [0, 9]
 				}
 				
 			],
