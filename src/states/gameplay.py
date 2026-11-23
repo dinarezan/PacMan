@@ -203,6 +203,8 @@ class Gameplay:
         if duration <= 0:
             raise ValueError("Power-up duration must be positive")
         self.clear_power_up()
+        game_map = self.renderer.map
+        game_map.pacman.active_power_up = name
         self.power_up = name
         self.power_up_left = duration
         self.power_up_total = duration
@@ -218,6 +220,8 @@ class Gameplay:
 
     def clear_power_up(self) -> None:
         """Remove the active bonus."""
+        game_map = self.renderer.map
+        game_map.pacman.active_power_up = None
         self.power_up = None
         self.power_up_left = None
         self.power_up_total = None
@@ -446,6 +450,7 @@ class Gameplay:
         for sup in contacts.super_pacgums:
             sup.eaten = True
             self.add_points(self.points_per_super_pacgum)
+            game_map.pacman.size = 1.2
             for ghost in game_map.ghosts:
                 if ghost.state not in (State.EATEN, State.WAITING):
                     ghost.state = State.FRIGHTENED
@@ -488,11 +493,13 @@ class Gameplay:
                 else:
                     Blinky.speed = 1
 
-        for ghost in (() if self.power_up == "star" else contacts.ghosts):
+        for ghost in contacts.ghosts:
             if ghost.state == State.FRIGHTENED:
                 ghost.start_respawn(self.RESPAWN_TIME)
                 self.add_points(self.points_per_ghost)
             elif ghost.state in (State.EATEN, State.WAITING):
+                continue
+            elif self.power_up == "star":
                 continue
             else:
                 self.lose_life()

@@ -62,6 +62,7 @@ class Ghost(ABC):
         self._rand_target = self._generate_random_target()
         self.frightened_time: float = 0.0
         self.respawn_time: float = 0.0
+        self.size: float = 1.0
         random.seed()
 
     def reset_position(self) -> None:

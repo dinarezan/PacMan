@@ -535,6 +535,7 @@ class RenderMap:
     def _draw_pacman(self, screen: pygame.Surface) -> None:
         """Draw Pac-Man."""
         pacman = getattr(self.map, "pacman", None)
+        power_up = getattr(pacman, "active_power_up", None)
         if pacman is not None:
             sprite = self._pacman_sprite(pacman)
             if self.pacman_flash_white:
@@ -555,6 +556,12 @@ class RenderMap:
                 pygame.draw.ellipse(glow, (240, 255, 255, 180),
                                     glow.get_rect(), width=max(2, self.tile // 20))
                 self._blit(screen, glow, pacman.position)
+            elif (power_up and power_up == "star") or pacman.invencibility:
+                glow = pygame.Surface((self.tile, self.tile), pygame.SRCALPHA)
+                pygame.draw.ellipse(glow, (240, 255, 255, 180),
+                                    glow.get_rect(), width=max(2, self.tile // 20))
+                self._blit(screen, glow, pacman.position)
+
             self._draw_shadow(screen, getattr(pacman, "position", pacman),
                               self._sprite(self.PACMAN_SPRITE), strength=1.0,
                               size=(100, 70))
