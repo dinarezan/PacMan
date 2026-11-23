@@ -2,7 +2,7 @@ from pydantic import BaseModel, model_validator, Field
 from enum import Enum
 from typing import Self
 
-GHOST_TYPES = ("blinky", "pinky", "punky", "clyde")
+GHOST_TYPES = ("blinky", "pinky", "punky", "clyde", "funky")
 
 
 class BaseGhost(BaseModel):
@@ -22,7 +22,7 @@ class Level(BaseModel):
     height: int = Field(ge=5, le=100)
     pacgum: int = Field(ge=1)
     max_time: int = Field(ge=5)
-    seed: int
+    seed: int = Field(default=0)
     ghosts: list[BaseGhost]
 
     @model_validator(mode='after')
@@ -35,7 +35,7 @@ class Level(BaseModel):
         if failed_validation:
             msg = ""
             for g in failed_validation:
-                msg =+ f"{g.name} with position {g.position}\n"
+                msg += f"{g.name} with position {g.position}\n"
             raise ValueError("Ghost position is not on the map."
                              f"Ghosts:\n{msg}")
         return self
@@ -44,8 +44,7 @@ class Level(BaseModel):
     def pacgum_validator(self) -> Self:
         max_pacgum = self.height * self.width - 5
         if self.pacgum > max_pacgum:
-            raise ValueError("Maximum possible number of pacgum for "
-                             f"this maze is {max_pacgum}")
+            self.pacgum = max_pacgum
         return self
 
 

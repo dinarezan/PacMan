@@ -114,7 +114,11 @@ class PacGumFactory:
                    (0, height - 1), (width - 1, height - 1)]
         for corner in corners:
             indices.remove(corner)
-        positions = random.choices(indices, k=(number - 4))
+        random.shuffle(indices)
+        if number < len(indices):
+            positions = indices[:number]
+        else:
+            positions = indices
         pacgums = []
         for pos in positions:
             pacgums.append(PacGum(pos, points))
