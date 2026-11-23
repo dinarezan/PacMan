@@ -355,7 +355,7 @@ class Funky(Ghost):
     def _jump_over(self, dt: float, target: tuple[int, int]) -> None:
         remaining = self.speed * dt
         while remaining > 10e-9:
-            dx, dy = target[0] - self.position[0], target[1] - self.position[1]
+            dx, dy = target[0] - self.map_pos[0], target[1] - self.map_pos[1]
             dist = hypot(dx, dy)
             if dist <= remaining:
                 print("I've reached the target")
