@@ -3,10 +3,13 @@ from .pacman import PacMan
 import random
 
 POWER_UP_PROBS = {
-                "coffee": 34,
-                "horror": 12,
-                "gold-donu": 20,
-                "clockake": 20,
+                "coffee": 44,
+                "horror": 16,
+                "gold-donut": 20,
+                "clockake": 30,
+                "bold": 20,
+                "behelit": 10,
+                "star": 20
 }
 
 FRUIT_VALUES = {"cherry": 100,
@@ -32,9 +35,6 @@ FRUIT_LEVELS = {"cherry": 1,
                 "pizza": 10}
 
 
-POWER_UPS = {"coffee": {"factor": 1.5, "duration": 5}}
-
-
 def reachable_cells(maze: list[list[int]],
                     start: tuple[int, int]) -> list[tuple[int, int]]:
     cells = [start]
@@ -49,10 +49,13 @@ def reachable_cells(maze: list[list[int]],
 
 class Fruit(Ghost):
     def __init__(self, name: str, maze: list[list[int]], speed: float = 2,
-                 *, position: tuple[int, int] | None = None):
+                 *, position: tuple[int, int] | None = None,
+                 value: int | None = None):
         if position is None:
             position = self.random_allocation(maze)
-        super().__init__(position, maze, FRUIT_VALUES[name], speed)
+        if value is None:
+            value = FRUIT_VALUES[name]
+        super().__init__(position, maze, value, speed)
         self.name = name
         self.visible: bool = True
         self.eaten: bool = False
@@ -76,11 +79,8 @@ class Fruit(Ghost):
 
 
 class PowerUp(Fruit):
-    def __init__(self, name, maze, speed = 2):
-        super().__init__(name, maze, speed)
-        self.power_up_factor: float = POWER_UPS[name["factor"]]
-        self.duration: float = POWER_UPS[name["duration"]]
-
-    def power_up_pacman(self) -> tuple[float, float]:
-        return (self.power_up_factor, self.duration)
-    # usage example when eaten: pacman.update_position(coffee.power_up_pacman())
+    def __init__(self, name: str, maze: list[list[int]], speed: float = 2,
+                 *, position: tuple[int, int] | None = None) -> None:
+        if name not in POWER_UP_PROBS:
+            raise ValueError(f"Unknown power-up: {name!r}")
+        super().__init__(name, maze, speed, position=position, value=0)

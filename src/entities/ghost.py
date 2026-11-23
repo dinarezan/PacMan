@@ -51,6 +51,7 @@ class Ghost(ABC):
         self.map_pos: tuple[float, float] = tuple(map(float, pos))
         self._next: tuple[int, int] | None = None
         self.speed: float = speed  #cells per s
+        self.speed_multiplier: float = 1.0
         self.default_speed: float = speed
         self.color: Colors
         self._maze: list[list[int]] = maze
@@ -132,7 +133,7 @@ class Ghost(ABC):
 
     def hunt_target(self, dt: float, pathfinder: Callable[..., list[tuple[int, int]]], *args: Any) -> None:
         """Go after target following BFS path."""
-        remaining = self.speed * dt # distance (in cells) to travel this frame
+        remaining = self.speed * self.speed_multiplier * dt
         while remaining > 10e-9:
             if self._next is None:
                 path = pathfinder(*args)
@@ -159,7 +160,7 @@ class Ghost(ABC):
         if self.speed < 9:
             self.speed *= 1.005
         target = pacman.position
-        remaining = self.speed * dt
+        remaining = self.speed * self.speed_multiplier * dt
         while remaining > 10e-9:
             dx, dy = target[0] - self.map_pos[0], target[1] - self.map_pos[1]
             dist = hypot(dx, dy)

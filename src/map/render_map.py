@@ -84,6 +84,7 @@ class RenderMap:
     PACMAN_ROTATION = {0: 270, 1: 0, 2: 90, 3: 180}
     GHOST_SPRITE = "body"
     GHOST_BODY_FRIGHTENED = "frightered-body"
+    GHOST_FRIGHTENED_EXTRA = "frightered-extra"
     FRIGHTENED_SPRITE = "frightered-ghost"   # matches the file name
     NIGHTMARE_BODY = "nightmare_body"
     NIGHTMARE_EYES = "nightmare_eyes"
@@ -122,6 +123,8 @@ class RenderMap:
     GHOST_FALL_TIME = 0.5
     GHOST_STAGGER = 0.2       # delay between ghosts
     GHOST_START_SCALE = 0.2
+    FRIGHTENED_FLICKER_DISTANCE = 2.0
+    FRIGHTENED_FLICKER_HALF_PERIOD = 0.25
     RESPAWN_FLASH_TIME = 3.0
     EATEN_BOUNCE_AMPLITUDE = 0.08  # fraction of a tile
     EATEN_BOUNCE_PERIOD = 0.8
@@ -472,6 +475,7 @@ class RenderMap:
         self._draw_pacgums(screen)
         self._draw_super_pellets(screen)
         self._draw_fruit(screen)
+        self._draw_power_ups(screen)
         self._draw_ghosts(screen)
         self._draw_pacman(screen)
         #self._draw_shadows(screen)
@@ -574,6 +578,7 @@ class RenderMap:
 
     def _draw_ghosts(self, screen: pygame.Surface) -> None:
         """Draw the ghosts (blue when frightened)."""
+        pacman = getattr(self.map, "pacman", None)
         for ghost in getattr(self.map, "ghosts", ()):
             #  --  Eyes floating animation  ----------------------
             position = getattr(ghost, "map_pos", ghost)
@@ -588,6 +593,14 @@ class RenderMap:
             sprite = self._ghost_sprite(ghost)
             self._draw_shadow(screen, position, sprite)
             self._blit(screen, sprite, position)
+            if (ghost.state == State.FRIGHTENED and pacman is not None
+                    and hypot(pacman.position[0] - ghost.map_pos[0],
+                              pacman.position[1] - ghost.map_pos[1])
+                    <= self.FRIGHTENED_FLICKER_DISTANCE
+                    and int(ghost.frightened_time
+                            / self.FRIGHTENED_FLICKER_HALF_PERIOD) % 2 == 0):
+                self._blit(screen, self._sprite(self.GHOST_FRIGHTENED_EXTRA),
+                           position)
 
     def _draw_super_pellets(self, screen: pygame.Surface) -> None:
         """Draw uneaten super pacgums."""
@@ -611,8 +624,20 @@ class RenderMap:
             self._blit(screen, sprite, fruit.map_pos, lift=height)
 
     def _draw_power_ups(self, screen: pygame.Surface) -> None:
-        """Draw power ups on the map"""
-        pass
+        for item in getattr(self.map, "power_ups", ()):
+            name = item.name
+            if name == "horror":
+                name = "horror_active"
+            elif name == "bold":
+                name = "bolt"
+            elif name == "clockake" and self.SPRITE_FOLDER == "sprites/low":
+                name = "cake-clock"
+            sprite = self._sprite(name)
+            drop = self.DROP_TILES * self.tile
+            height = self._bounce(item.age, drop)
+            self._draw_shadow(screen, item.map_pos, sprite,
+                              1.0 - min(height / drop, 0.7))
+            self._blit(screen, sprite, item.map_pos, lift=height)
 
     def _draw_info(self, screen: pygame.Surface) -> None:
         """Draw information about score, level, lives and power-ups"""

@@ -8,7 +8,8 @@ from math import ceil, hypot
 from src.core.collisions import CollisionSystem
 from src.graphics.hud import Hud
 from src.map.render_map import RenderMap
-from src.entities.extras import FRUIT_LEVELS, Fruit, reachable_cells
+from src.entities.extras import (FRUIT_LEVELS, POWER_UP_PROBS, Fruit, PowerUp,
+                                 reachable_cells)
 from src.entities.ghost import Ghost, State, Blinky
 
 
@@ -45,11 +46,24 @@ class Gameplay:
     MAX_LIVES = 5
     FRIGHTENED_TIME = 10.0
     RESPAWN_TIME = 10.0
+    FRUIT_LIFETIME = 25.0
+    FRUIT_SPEED = 2.0
+    FLASH_MODE_SPEED = 4.5
+    # --  DASH  -------------------------
     DASH_DURATION = 0.8
     DASH_COOLDOWN = 15.0
     DASH_SPEED = 10.0
-    FRUIT_LIFETIME = 25.0
-    FRUIT_SPEED = 2.0
+    # --  POWER UPS  ----------------------------
+    POWER_UP_INTERVAL = 40              # Dots required to Spam it
+    POWER_UP_CHANCE = 0.4               # Probs to spam it when interval
+    POWER_UP_DURATION = 40.0            # Effects duration
+    CLOCKAKE_EFFECT = 0.8               # Ghost speed effect
+    GOLD_DONUT_EFFECT = 1.3             # Frightered duration increaase
+    COFFEE_EFFECT = 1.25                # Speed effect
+    HORROR_EFFECT = 0.85                # Slow effect
+    BOLD_EFFECT = 50.0                  # Dash cold retudction
+    BEHELIT_EFFECT = 1.4                # Speed increment on Ghosts
+    SPECIAL_DURATION = 15               # Duration for Behelit and star
 
     def __init__(self,
                  renderer: RenderMap,
@@ -71,11 +85,19 @@ class Gameplay:
         self.no_dash_cooldown = False
         self.dash_remaining = 0.0
         self.dash_cooldown_remaining = 0.0
+        self._dash_cooldown_reduced = False
+        self._cooldown_frame_remaining = 0.0
         self.points = points
         self.fruits = 0
         self._fruit_spawned = False
         self.renderer.map.fruit = None
         self.renderer.map.extra_fruits = []
+        self.renderer.map.power_ups = []
+        self.pacgums_eaten = 0
+        self.power_up: str | None = None
+        self.power_up_left: float | None = None
+        self.power_up_total: float | None = None
+        self.gold_donut_active = False
         self.current_level: int = level
         self.curr_time = curr_time
         self.max_time = max_time
@@ -104,9 +126,13 @@ class Gameplay:
     def advance_level(self, renderer: RenderMap, max_time: float) -> None:
         """Switch maps while preserving the player's accumulated progress."""
         self._end_dash()
+        self.clear_power_up()
+        self.gold_donut_active = False
         self.renderer = renderer
         self.renderer.map.fruit = None
         self.renderer.map.extra_fruits = []
+        self.renderer.map.power_ups = []
+        self.pacgums_eaten = 0
         self._fruit_spawned = False
         self.current_level += 1
         self.max_time = float(max_time)
@@ -132,6 +158,8 @@ class Gameplay:
         bool
             True if Pac-Man still has lives, False on game over.
         """
+        self.clear_power_up()
+        self.gold_donut_active = False
         if self.immortality:
             self.lives = self.starting_lives
         else:
@@ -163,25 +191,38 @@ class Gameplay:
 
     def activate_power_up(self, name: str,
                           duration: float | None = None) -> None:
-        """
-        Activate a bonus (replacing any active one).
-
-        Parameters
-        ----------
-        name : str
-            Sprite name in ``assets/sprites``, e.g. ``"power-up"``.
-        duration : float, optional
-            Seconds it lasts. If None it stays until `clear_power_up`.
-        """
+        """Activate a power-up; timed bonuses replace each other."""
+        if name not in POWER_UP_PROBS:
+            raise ValueError(f"Unknown power-up: {name!r}")
+        if name == "gold-donut":
+            self.gold_donut_active = True
+            return
+        if duration is None:
+            duration = (self.SPECIAL_DURATION if name in ("behelit", "star")
+                        else self.POWER_UP_DURATION)
+        if duration <= 0:
+            raise ValueError("Power-up duration must be positive")
+        self.clear_power_up()
         self.power_up = name
         self.power_up_left = duration
         self.power_up_total = duration
+        if name == "bold" and not self._dash_cooldown_reduced:
+            if self.dash_cooldown_remaining > 0:
+                self.dash_cooldown_remaining *= 1 - self.BOLD_EFFECT / 100
+                self._dash_cooldown_reduced = True
+        if name in ("clockake", "behelit"):
+            factor = (self.CLOCKAKE_EFFECT if name == "clockake"
+                      else self.BEHELIT_EFFECT)
+            for ghost in self.renderer.map.ghosts:
+                ghost.speed_multiplier = factor
 
     def clear_power_up(self) -> None:
         """Remove the active bonus."""
         self.power_up = None
         self.power_up_left = None
         self.power_up_total = None
+        for ghost in self.renderer.map.ghosts:
+            ghost.speed_multiplier = 1.0
 
     def reset_time(self) -> None:
         """Restore the level timer."""
@@ -192,8 +233,12 @@ class Gameplay:
         if self.dash_cooldown_remaining > 0:
             return
         self.dash_remaining = self.DASH_DURATION
+        self._dash_cooldown_reduced = (
+            self.power_up == "bold" and not self.no_dash_cooldown)
         self.dash_cooldown_remaining = (
-            0.0 if self.no_dash_cooldown else self.DASH_COOLDOWN)
+            0.0 if self.no_dash_cooldown else self.DASH_COOLDOWN
+            * (1 - self.BOLD_EFFECT / 100
+               if self._dash_cooldown_reduced else 1))
         self.renderer.dash_active = True
         self.renderer.dash_trail = []
 
@@ -202,6 +247,12 @@ class Gameplay:
         self.renderer.dash_active = False
         self.renderer.dash_trail = []
 
+    def _advance_dash_cooldown(self, dt: float) -> None:
+        self.dash_cooldown_remaining = max(
+            0.0, self.dash_cooldown_remaining - dt)
+        if self.dash_cooldown_remaining < 1e-9:
+            self.dash_cooldown_remaining = 0.0
+
     def _record_dash_position(self, position: tuple[float, float]) -> None:
         trail = self.renderer.dash_trail
         if not trail or hypot(position[0] - trail[-1][0],
@@ -209,18 +260,30 @@ class Gameplay:
             trail.append(position)
             del trail[:-6]
 
-    def _new_fruit(self, name: str) -> Fruit:
+    def _item_spawn_position(self) -> tuple[int, int]:
         game_map = self.renderer.map
-
         reachable = reachable_cells(game_map.maze, game_map.pacman.cell)
         candidates = reachable[1:] or reachable
         occupied = {fruit.position for fruit in game_map.extra_fruits}
+        occupied.update(item.position for item in game_map.power_ups)
         if game_map.fruit is not None:
             occupied.add(game_map.fruit.position)
         available = [position for position in candidates
                      if position not in occupied]
-        position = random.choice(available or candidates)
-        return Fruit(name, game_map.maze, self.FRUIT_SPEED, position=position)
+        return random.choice(available or candidates)
+
+    def _new_fruit(self, name: str) -> Fruit:
+        return Fruit(name, self.renderer.map.maze, self.FRUIT_SPEED,
+                     position=self._item_spawn_position())
+
+    def spawn_random_power_up(self) -> None:
+        """Add a power-up using the usual weighted selection."""
+        names = tuple(POWER_UP_PROBS)
+        name = random.choices(names, weights=tuple(POWER_UP_PROBS.values()),
+                              k=1)[0]
+        self.renderer.map.power_ups.append(
+            PowerUp(name, self.renderer.map.maze, self.FRUIT_SPEED,
+                    position=self._item_spawn_position()))
 
     def _spawn_fruit(self) -> None:
         game_map = self.renderer.map
@@ -235,22 +298,36 @@ class Gameplay:
         name = random.choice(tuple(FRUIT_LEVELS))
         self.renderer.map.extra_fruits.append(self._new_fruit(name))
 
+    def _advance_pickup(self, item: Fruit, dt: float) -> None:
+        old_age = item.age
+        item.age = min(self.FRUIT_LIFETIME, item.age + dt)
+        landing = RenderMap._bounce_duration()
+        moving_time = max(0.0, item.age - max(old_age, landing))
+        if item.moving and moving_time:
+            item.behaviour(moving_time)
+
     def _update_fruit(self, dt: float) -> None:
         game_map = self.renderer.map
         fruits = ([game_map.fruit] if game_map.fruit is not None else [])
         fruits.extend(game_map.extra_fruits)
         for fruit in fruits:
-            old_age = fruit.age
-            fruit.age = min(self.FRUIT_LIFETIME, fruit.age + dt)
-            landing = RenderMap._bounce_duration()
-            moving_time = max(0.0, fruit.age - max(old_age, landing))
-            if fruit.moving and moving_time:
-                fruit.behaviour(moving_time)
+            self._advance_pickup(fruit, dt)
             if fruit.age >= self.FRUIT_LIFETIME - 1e-9:
                 if fruit is game_map.fruit:
                     game_map.fruit = None
                 else:
                     game_map.extra_fruits.remove(fruit)
+
+    def _update_power_ups(self, dt: float) -> None:
+        game_map = self.renderer.map
+        for item in game_map.power_ups[:]:
+            self._advance_pickup(item, dt)
+            if item.age >= self.FRUIT_LIFETIME - 1e-9:
+                game_map.power_ups.remove(item)
+        if self.power_up_left is not None:
+            self.power_up_left = max(0.0, self.power_up_left - dt)
+            if self.power_up_left < 1e-9:
+                self.clear_power_up()
 
     def update(self, dt: float) -> None:
         """
@@ -273,10 +350,12 @@ class Gameplay:
             self.time_left = max(0.0, self.time_left - dt)
             self.time_up = self.time_left == 0.0
 
-        self.dash_cooldown_remaining = max(
-            0.0, self.dash_cooldown_remaining - dt)
-        if self.dash_cooldown_remaining < 1e-9:
-            self.dash_cooldown_remaining = 0.0
+        self._cooldown_frame_remaining = dt
+        self._update_movement(dt)
+        self._advance_dash_cooldown(self._cooldown_frame_remaining)
+        self._cooldown_frame_remaining = 0.0
+
+    def _update_movement(self, dt: float) -> None:
         if self._check_collisions() or self.life_lost:
             return
         dash_time = min(dt, self.dash_remaining)
@@ -295,50 +374,83 @@ class Gameplay:
 
     def _move(self, dt: float, dashing: bool) -> bool:
         game_map = self.renderer.map
-        pacman_factor = (4.5 if self.flash_mode else 1.0)
+        base_factor = (self.FLASH_MODE_SPEED if self.flash_mode else 1.0)
         if dashing:
-            pacman_factor *= self.DASH_SPEED
-        max_speed = max([game_map.pacman.speed * pacman_factor,
+            base_factor *= self.DASH_SPEED
+        coffee_possible = (self.power_up == "coffee"
+                           or any(item.name == "coffee"
+                                  for item in game_map.power_ups))
+        behelit_possible = (self.power_up == "behelit"
+                            or any(item.name == "behelit"
+                                   for item in game_map.power_ups))
+        max_speed = max([game_map.pacman.speed * base_factor
+                         * (self.COFFEE_EFFECT if coffee_possible else 1.0),
                          self.FRUIT_SPEED]
-                        + [ghost.speed for ghost in game_map.ghosts])
+                        + [ghost.speed * (self.BEHELIT_EFFECT
+                                          if behelit_possible else 1)
+                           for ghost in game_map.ghosts])
         steps = max(1, ceil(max_speed * dt / 0.1))
         step_dt = dt / steps
         for _ in range(steps):
-            if self.life_lost:
-                break
-            for ghost in game_map.ghosts:
-                ghost.behaviour(step_dt, game_map.pacman)
-            self._update_fruit(step_dt)
-            if dashing:
-                self._record_dash_position(game_map.pacman.position)
-            game_map.pacman.update_position(
-                step_dt, game_map.maze, speed_multiplier=pacman_factor)
-            if self._check_collisions():
-                return True
+            remaining = step_dt
+            while remaining > 1e-12:
+                segment = remaining
+                if self.power_up_left is not None:
+                    segment = min(segment, self.power_up_left)
+                self._advance_dash_cooldown(segment)
+                self._cooldown_frame_remaining = max(
+                    0.0, self._cooldown_frame_remaining - segment)
+                pacman_factor = base_factor
+                if self.power_up == "coffee":
+                    pacman_factor *= self.COFFEE_EFFECT
+                elif self.power_up == "horror":
+                    pacman_factor *= self.HORROR_EFFECT
+                for ghost in game_map.ghosts:
+                    ghost.behaviour(segment, game_map.pacman)
+                self._update_fruit(segment)
+                if dashing:
+                    self._record_dash_position(game_map.pacman.position)
+                game_map.pacman.update_position(
+                    segment, game_map.maze, speed_multiplier=pacman_factor)
+                self._update_power_ups(segment)
+                if self._check_collisions():
+                    return True
+                if self.life_lost:
+                    return False
+                remaining -= segment
         return False
-        #if self.power_up_left is not None:
-        #    self.power_up_left -= dt
-        #    if self.power_up_left <= 0:
-        #        self.clear_power_up()
 
     def _check_collisions(self) -> bool:
         game_map = self.renderer.map
         contacts = self.collisions.check(
             game_map.pacman,
-            [] if self.invincible or self.dash_remaining > 0
+            [] if (self.invincible or self.dash_remaining > 0
+                   or self.power_up == "star")
             else game_map.ghosts,
             game_map.pacgums,
             game_map.super_pacgums)
         for gum in contacts.pacgums:
             gum.eaten = True
             self.add_points(self.points_per_pacgum)
+            self.pacgums_eaten += 1
+            if (self.pacgums_eaten % self.POWER_UP_INTERVAL == 0
+                    and random.random() < self.POWER_UP_CHANCE):
+                self.spawn_random_power_up()
+        for item in game_map.power_ups[:]:
+            if (item.age >= RenderMap._bounce_duration()
+                    and hypot(game_map.pacman.position[0] - item.map_pos[0],
+                              game_map.pacman.position[1] - item.map_pos[1])
+                    <= self.collisions.GHOST_DISTANCE):
+                self.activate_power_up(item.name)
+                game_map.power_ups.remove(item)
         for sup in contacts.super_pacgums:
             sup.eaten = True
             self.add_points(self.points_per_super_pacgum)
             for ghost in game_map.ghosts:
                 if ghost.state not in (State.EATEN, State.WAITING):
                     ghost.state = State.FRIGHTENED
-                    ghost.frightened_time = self.FRIGHTENED_TIME
+                    ghost.frightened_time = self.FRIGHTENED_TIME * (
+                        self.GOLD_DONUT_EFFECT if self.gold_donut_active else 1.0)
         fruits = ([game_map.fruit] if game_map.fruit is not None else [])
         fruits.extend(game_map.extra_fruits)
         for fruit in fruits:
@@ -376,7 +488,7 @@ class Gameplay:
                 else:
                     Blinky.speed = 1
 
-        for ghost in contacts.ghosts:
+        for ghost in (() if self.power_up == "star" else contacts.ghosts):
             if ghost.state == State.FRIGHTENED:
                 ghost.start_respawn(self.RESPAWN_TIME)
                 self.add_points(self.points_per_ghost)

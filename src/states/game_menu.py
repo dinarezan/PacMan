@@ -232,13 +232,14 @@ class GameMenu:
         normal, active = self._make_images(self.CONFIG_SIZE)
         return Menu(
             self._cheat_labels() + ["[ ] Next Level", "Spawn random fruit",
-                                    "Return"],
+                                    "Spawn random power-up", "Return"],
             [lambda: self._toggle_cheat("invincible"),
              lambda: self._toggle_cheat("immortality"),
              lambda: self._toggle_cheat("flash_mode"),
              lambda: self._toggle_cheat("no_dash_cooldown"),
              self.functions["next_level"],
              self.functions["spawn_fruit"],
+             self.functions["spawn_power_up"],
              lambda: self.change_menu("pause")],
             x=(self.WIDTH - self.CONFIG_SIZE[0]) // 2, y=120,
             image_normal=normal, image_active=active,

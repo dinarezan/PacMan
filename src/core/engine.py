@@ -88,6 +88,7 @@ class Engine:
             "toggle_cheat": self.toggle_cheat,
             "next_level": self.cheat_next_level,
             "spawn_fruit": self.cheat_spawn_fruit,
+            "spawn_power_up": self.cheat_spawn_power_up,
         }
         self.running = True
         self._menu = GameMenu(
@@ -232,6 +233,11 @@ class Engine:
         if not self.cheats or not self.game_active:
             raise RuntimeError("Cheats require an active game and cheat mode")
         self.gameplay.spawn_random_fruit()
+
+    def cheat_spawn_power_up(self) -> None:
+        if not self.cheats or not self.game_active:
+            raise RuntimeError("Cheats require an active game and cheat mode")
+        self.gameplay.spawn_random_power_up()
 
     def _sync_volume(self) -> None:
         if not pygame.mixer.get_init():
