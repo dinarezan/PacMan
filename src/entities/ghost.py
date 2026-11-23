@@ -342,43 +342,48 @@ class Clyde(Ghost):
 
 
 class Funky(Ghost):
+    """When in range of chase radius and horizontally aligned with pacman, can jump over the wall."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
                  points: int, speed: int = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
-        self._default_state: State.SCATTER
+        self._default_state: State = State.SCATTER
         self.color: Colors = Colors.GREEN
         self._chase_radius: int = chase_rad
-        self.must_finish: bool = False
-        self.saved_pacman_pos: tuple[int, int] | None = None
+        self.jumping: bool = False
+        self.target: tuple[int, int] | None = None
 
     def _jump_over(self, dt: float, target: tuple[int, int]) -> None:
         remaining = self.speed * dt
-        while remaining > 10e-9:
-            dx, dy = target[0] - self.map_pos[0], target[1] - self.map_pos[1]
-            dist = hypot(dx, dy)
-            if dist <= remaining:
-                print("I've reached the target")
-                self.map_pos = target
-                self.position = target
-                self._next = None
-                self.saved_pacman_pos = None
-                self.eyes = 4
-                return
-            else:
-                f = remaining / dist
-                self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
-                break
+        dx, dy = target[0] - self.map_pos[0], target[1] - self.map_pos[1]
+        dist = hypot(dx, dy)
+        if dist <= remaining:
+            self.map_pos = (float(target[0]), float(target[1]))
+            self.position = target
+            self._next = None
+            self.jumping = False
+            self.target = None
+            self.eyes = 4
+            return
+        else:
+            f = remaining / dist
+            self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
-        horizontaly_aligned = True if self.position[1] == pacman_pos[1] else False
-        if horizontaly_aligned and not self.saved_pacman_pos:
-            self.saved_pacman_pos = pacman_pos
-            # target = (pacman_pos[0], self.position[1])
-            print("Set up the target:", self.saved_pacman_pos)
+        if not self.jumping:
+            # nearest cell to where he really is, even in the middle of a step
+            here = (round(self.map_pos[0]), round(self.map_pos[1]))
+            aligned = here[1] == pacman_pos[1] and here[0] != pacman_pos[0]
+            if aligned:
+                step = 1 if pacman_pos[0] > here[0] else -1
+                tx = here[0] + step
+                if 0 <= tx < len(self._maze[0]):
+                    self.target = (tx, here[1])
+                    self.jumping = True
+                    self.eyes = DIRS[(step, 0)]
 
-        if self.saved_pacman_pos is not None:
-            self._jump_over(dt, self.saved_pacman_pos)
+        if self.jumping:
+            self._jump_over(dt, self.target)
         else:
             self.hunt_target(dt, self._path_to_target, pacman_pos)
 
@@ -387,13 +392,11 @@ class Funky(Ghost):
         dist_to_pacman = dist(self.map_pos, pacman.position)
         if dist_to_pacman <= self._chase_radius and self.state == State.SCATTER:
             self.state = State.CHASE
-            print("Funky entered a chase mode.")
         elif dist_to_pacman > self._chase_radius and \
-            self.state == State.CHASE and not self.saved_pacman_pos:
+            self.state == State.CHASE and not self.jumping:
             self.state = State.SCATTER
-            print("Funky switched to random movement.")
 
-        if self.state == State.CHASE or self.saved_pacman_pos is not None:
+        if self.state == State.CHASE:
             self._chase(dt, pacman.cell)
         else:
             self.default_behaviour(dt, pacman)   
