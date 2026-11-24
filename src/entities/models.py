@@ -40,13 +40,6 @@ class Level(BaseModel):
                              f"Ghosts:\n{msg}")
         return self
 
-    @model_validator(mode='after')
-    def pacgum_validator(self) -> Self:
-        max_pacgum = self.height * self.width - 5
-        if self.pacgum > max_pacgum:
-            self.pacgum = max_pacgum
-        return self
-
 
 class Game(BaseModel):
     levels: list[Level] = Field(min_length=1)
@@ -54,7 +47,6 @@ class Game(BaseModel):
     points_per_pacgum: int = Field(ge=0)
     points_per_super_pacgum: int = Field(ge=0)
     points_per_ghost: int = Field(ge=0)
-    limit_time_per_level: int = Field(ge=1)
 
 
 class Player(BaseModel):

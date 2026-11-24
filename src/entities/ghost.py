@@ -63,6 +63,8 @@ class Ghost(ABC):
         self.frightened_time: float = 0.0
         self.respawn_time: float = 0.0
         self.size: float = 1.0
+        self.target: tuple[int, int] | None= None
+        self.jumping: bool = False
         random.seed()
 
     def reset_position(self) -> None:
@@ -74,6 +76,8 @@ class Ghost(ABC):
         self.frightened_time = 0.0
         self.respawn_time = 0.0
         self.speed = self.default_speed
+        self.target = None
+        self.jumping = False
 
     def _path_to_target(self, target: tuple[int, int]) -> list[tuple[int, int]]:
         """Generate path to target, can be pacman, corner or else."""
@@ -344,7 +348,8 @@ class Clyde(Ghost):
 
 
 class Funky(Ghost):
-    """When in range of chase radius and horizontally aligned with pacman, can jump over the wall."""
+    """When in range of chase radius starts hunting pacman by BFS.
+     When closer than 2, can jump over the wall in any direction."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
                  points: int, speed: int = 0.9, chase_rad: int = 5):
         super().__init__(pos, maze, points, speed)
@@ -352,8 +357,21 @@ class Funky(Ghost):
         self._default_state: State = State.SCATTER
         self.color: Colors = Colors.GREEN
         self._chase_radius: int = chase_rad
-        self.jumping: bool = False
-        self.target: tuple[int, int] | None = None
+
+    def _check_if_wall_between(self, pacman: PacMan) -> bool:
+        """Checks if path to pacman is a straight line with no wall,
+        If it's either verticaly ot horizontaly aligned, it means there
+        is no wall between them."""
+        neighbours = get_neighbours(self.position, self._maze)
+        if pacman.cell in neighbours:
+            return False
+        path = self._path_to_target(pacman.cell)
+        start_x, start_y = path.pop(0)
+        hor_path =  all(x == start_x for x, _ in path)
+        ver_path = all(y == start_y for _, y in path)
+        if hor_path or ver_path:
+            return False
+        return True
 
     def _jump_over(self, dt: float, target: tuple[int, int]) -> None:
         remaining = self.speed * dt
@@ -371,24 +389,24 @@ class Funky(Ghost):
             f = remaining / dist
             self.map_pos = (self.map_pos[0] + dx * f, self.map_pos[1] + dy * f)
 
-    def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
+    def _chase(self, dt: float, pacman: PacMan) -> None:
         if not self.jumping:
-            # nearest cell to where he really is, even in the middle of a step
-            here = (round(self.map_pos[0]), round(self.map_pos[1]))
-            aligned = here[1] == pacman_pos[1] and here[0] != pacman_pos[0]
-            if aligned:
-                step = 1 if pacman_pos[0] > here[0] else -1
-                tx = here[0] + step
-                if 0 <= tx < len(self._maze[0]):
-                    self.target = (tx, here[1])
-                    self.jumping = True
-                    self.eyes = DIRS[(step, 0)]
+            dist_to_pacman = dist(self.map_pos, pacman.position)
+            wall_between = self._check_if_wall_between(pacman)
+            if dist_to_pacman < 1.5 and wall_between:
+                dx = 1 if pacman.position[0] > self.map_pos[0] else -1
+                dy = 1 if pacman.position[1] > self.map_pos[1] else -1
+                self.target = pacman.cell
+                self.jumping = True
+                if abs(self.map_pos[0] - self.target[0]) > abs(self.map_pos[1] - self.target[1]):
+                    self.eyes = DIRS[(dx, 0)]
+                else:
+                    self.eyes = DIRS[(0, dy)]          
 
         if self.jumping:
             self._jump_over(dt, self.target)
         else:
-            self.hunt_target(dt, self._path_to_target, pacman_pos)
-
+            self.hunt_target(dt, self._path_to_target, pacman.cell)
 
     def behaviour(self, dt: float, pacman: PacMan):
         dist_to_pacman = dist(self.map_pos, pacman.position)
@@ -399,9 +417,9 @@ class Funky(Ghost):
             self.state = State.SCATTER
 
         if self.state == State.CHASE:
-            self._chase(dt, pacman.cell)
+            self._chase(dt, pacman)
         else:
-            self.default_behaviour(dt, pacman)   
+            self.default_behaviour(dt, pacman)
 
 
 class GhostFactory:
