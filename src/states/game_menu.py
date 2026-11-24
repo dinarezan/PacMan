@@ -69,9 +69,11 @@ class GameMenu:
     def __init__(self, size: tuple[int, int], font: Any, title_font: Any,
                  functions: dict[str, Callable[..., Any]],
                  scores: list[str] | None = None,
-                 path: Path = Path(".")) -> None:
+                 path: Path = Path("."),
+                 play_sound: Callable[[str], None] | None = None) -> None:
         self.WIDTH, self.HEIGHT = size
         self.functions = functions
+        self.play_sound = play_sound
         self.font = font
         self.title_font = title_font
         self.scores = scores if scores is not None else []
@@ -121,7 +123,8 @@ class GameMenu:
         x = (self.WIDTH - self.BUTTON_SIZE[0]) // 2
         return Menu(items, actions, x=x, y=y,
                     image_normal=self.normal, image_active=self.active,
-                    font=self.font, title_case=title_case)
+                    font=self.font, title_case=title_case,
+                    play_sound=self.play_sound)
 
     def _make_main_menu(self) -> Menu:
         """Build the main menu."""
@@ -144,7 +147,8 @@ class GameMenu:
         menu = Menu(self._config_labels() + ["Return"], actions,
                     x=(self.WIDTH - self.CONFIG_SIZE[0]) // 2, y=120,
                     image_normal=normal, image_active=active,
-                    font=self.font, title_case=False)
+                    font=self.font, title_case=False,
+                    play_sound=self.play_sound)
         return menu
 
     def _config_labels(self) -> list[str]:
@@ -243,7 +247,7 @@ class GameMenu:
              lambda: self.change_menu("pause")],
             x=(self.WIDTH - self.CONFIG_SIZE[0]) // 2, y=120,
             image_normal=normal, image_active=active,
-            font=self.font, title_case=False)
+            font=self.font, title_case=False, play_sound=self.play_sound)
 
     def _toggle_cheat(self, name: str) -> None:
         self.functions["toggle_cheat"](name)
@@ -361,6 +365,8 @@ class GameMenu:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 \
                     and self.menu.buttons[2].rect.collidepoint(event.pos):
                 self.menu.hover(event.pos)
+                if self.play_sound:
+                    self.play_sound("menu_click")
                 self._dragging_volume = True
                 self._set_volume_from_mouse(event.pos[0])
                 return True

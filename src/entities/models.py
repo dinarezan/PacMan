@@ -23,6 +23,7 @@ class Level(BaseModel):
     pacgum: int = Field(ge=1)
     max_time: int = Field(ge=5)
     seed: int = Field(default=0)
+    theme: str = Field(min_length=1, default="default")
     ghosts: list[BaseGhost]
 
     @model_validator(mode='after')
@@ -64,5 +65,3 @@ class Player(BaseModel):
 
 class Highscores(BaseModel):
     players: list[Player]
-
-

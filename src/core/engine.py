@@ -12,6 +12,7 @@ from src.graphics.hud import Hud
 from src.graphics.read_screen import read_screen_size
 from src.map.render_map import RenderMap
 from src.states.gameplay import Gameplay
+from src.sound.sound_controller import SoundController
 # from src.core.settings import values   # * -> Put here game speed and other stuff??
 
 
@@ -75,6 +76,7 @@ class Engine:
         pygame.display.set_caption('Pacman')
         ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
         self.assets = AssetManager(ASSETS_DIR)
+        self.sound = SoundController(self.assets)
         functions = {
             "start": self.start,
             "exit": self.exit_app,
@@ -97,6 +99,7 @@ class Engine:
             title_font=self.title_font,
             functions=functions,
             path=ASSETS_DIR,
+            play_sound=self.sound.play,
         )
         self._sync_volume()
 
@@ -104,7 +107,6 @@ class Engine:
         """Run the application."""
         self._pre_init()
         self._init()
-        self._play_theme()
         self._config()
         self._update()
         self._finish()
@@ -128,7 +130,9 @@ class Engine:
             lives=self.config.lives,
             points_per_pacgum=self.config.points_per_pacgum,
             points_per_super_pacgum=self.config.points_per_super_pacgum,
-            ghosts_points=self.config.points_per_super_pacgum,
+            ghosts_points=self.config.points_per_ghost,
+            play_sound=self.sound.play,
+
             )
         self.gameplay.hud.SPRITE_FOLDER = self.renderer.SPRITE_FOLDER
         self.pause = False
@@ -136,6 +140,8 @@ class Engine:
         self.score = 0
         self.respawn_remaining = 0.0
         self._menu.change_menu("pause")
+        self.sound.play("init")
+        self.sound.start_music()
 
     def _create_renderer(self, level_index: int) -> RenderMap:
         level = self.config.levels[level_index]
@@ -147,7 +153,9 @@ class Engine:
             max_time=level.max_time,
             points_per_pacgum=self.config.points_per_pacgum,
             points_per_super_pacgum=self.config.points_per_super_pacgum,
-            points_per_ghost=self.config.points_per_ghost)
+            points_per_ghost=self.config.points_per_ghost,
+            theme=level.theme,
+            )
         # print("level:\n", game_map.maze)
         width, height = self.SCREEN_SIZE
         map_area = (width, height - Hud.TOP_HEIGHT - Hud.BOTTOM_HEIGHT)
@@ -166,6 +174,8 @@ class Engine:
             self.score = self.gameplay.points
             self.pause = True
             self.game_active = False
+            self.sound.stop_music()
+            self.sound.play("pacman_win")
             self._menu.show_victory(self.score)
             return
         renderer = self._create_renderer(next_index)
@@ -251,10 +261,6 @@ class Engine:
                 pygame.mixer.Channel(index).set_volume(volume)
             self._volume_channels = count
 
-    def _play_theme(self) -> None:
-        """Play the theme music."""
-        pass
-
     def _config(self) -> None:
         """Apply the configuration."""
         pass
@@ -273,6 +279,7 @@ class Engine:
         self.game_active = False
         self.renderer = None
         self.respawn_remaining = 0.0
+        self.sound.stop_music()
         self._menu.change_menu("main")
 
     def resume(self) -> None:
@@ -310,6 +317,8 @@ class Engine:
                     self.score = self.gameplay.points
                     self.pause = True
                     self.game_active = False
+                    self.sound.stop_music()
+                    self.sound.play("lose_pacman")
                     self._menu.show_game_over(self.score)
                 else:
                     self.gameplay.reset_positions()
@@ -330,6 +339,8 @@ class Engine:
                         self.score = self.gameplay.points
                         self.pause = True
                         self.game_active = False
+                        self.sound.stop_music()
+                        self.sound.play("lose_pacman")
                         self._menu.show_game_over(self.score)
                     else:
                         self.respawn_remaining = self.RESPAWN_DELAY

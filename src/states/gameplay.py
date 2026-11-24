@@ -2,7 +2,7 @@ from __future__ import annotations
 import pygame
 
 import random
-from typing import Any
+from typing import Any, Callable
 import time
 from math import ceil, hypot
 from src.core.collisions import CollisionSystem
@@ -45,6 +45,7 @@ class Gameplay:
     START_LIVES = 3
     MAX_LIVES = 5
     FRIGHTENED_TIME = 10.0
+    MAX_GHOST_MULTIPLIER = 8
     RESPAWN_TIME = 10.0
     FRUIT_LIFETIME = 25.0
     FRUIT_SPEED = 2.0
@@ -74,8 +75,11 @@ class Gameplay:
                  curr_time: float = 0,
                  points_per_pacgum: int = 10,
                  points_per_super_pacgum: int = 50,
-                 ghosts_points: int = 200):
+                 ghosts_points: int = 200,
+                 play_sound: Callable[[str], None] | None = None):
         self.renderer = renderer
+        self.play_sound = play_sound
+        self._sound_random = random.Random()
         self.hud = Hud(renderer.assets)
         self.lives = max(0, min(self.MAX_LIVES, lives))
         self.starting_lives = self.lives
@@ -98,6 +102,7 @@ class Gameplay:
         self.power_up_left: float | None = None
         self.power_up_total: float | None = None
         self.gold_donut_active = False
+        self._donut_time_left = 0.0
         self.current_level: int = level
         self.curr_time = curr_time
         self.max_time = max_time
@@ -107,9 +112,10 @@ class Gameplay:
         self.points_per_pacgum = points_per_pacgum
         self.points_per_super_pacgum = points_per_super_pacgum
         self.points_per_ghost = ghosts_points
+        self._ghost_score_multiplier = 1
         self.collisions = CollisionSystem()
         self.life_lost = False
-        #self.time: int = time
+        # self.time: int = time
 
     @property
     def game_over(self) -> bool:
@@ -128,11 +134,15 @@ class Gameplay:
         self._end_dash()
         self.clear_power_up()
         self.gold_donut_active = False
+        self._donut_time_left = 0.0
+        self.renderer.map.pacman.size = 1.0
         self.renderer = renderer
+        self.renderer.map.pacman.size = 1.0
         self.renderer.map.fruit = None
         self.renderer.map.extra_fruits = []
         self.renderer.map.power_ups = []
         self.pacgums_eaten = 0
+        self._ghost_score_multiplier = 1
         self._fruit_spawned = False
         self.current_level += 1
         self.max_time = float(max_time)
@@ -160,6 +170,9 @@ class Gameplay:
         """
         self.clear_power_up()
         self.gold_donut_active = False
+        self._donut_time_left = 0.0
+        self.renderer.map.pacman.size = 1.0
+        self._ghost_score_multiplier = 1
         if self.immortality:
             self.lives = self.starting_lives
         else:
@@ -236,6 +249,8 @@ class Gameplay:
     def _start_dash(self) -> None:
         if self.dash_cooldown_remaining > 0:
             return
+        if self.play_sound:
+            self.play_sound("dash")
         self.dash_remaining = self.DASH_DURATION
         self._dash_cooldown_reduced = (
             self.power_up == "bold" and not self.no_dash_cooldown)
@@ -328,6 +343,11 @@ class Gameplay:
             self._advance_pickup(item, dt)
             if item.age >= self.FRUIT_LIFETIME - 1e-9:
                 game_map.power_ups.remove(item)
+        if self._donut_time_left > 0:
+            self._donut_time_left = max(0.0, self._donut_time_left - dt)
+            if self._donut_time_left < 1e-9:
+                self._donut_time_left = 0.0
+                game_map.pacman.size = 1.0
         if self.power_up_left is not None:
             self.power_up_left = max(0.0, self.power_up_left - dt)
             if self.power_up_left < 1e-9:
@@ -353,6 +373,8 @@ class Gameplay:
         if not self.time_up:
             self.time_left = max(0.0, self.time_left - dt)
             self.time_up = self.time_left == 0.0
+            if self.time_up and self.play_sound:
+                self.play_sound("nightmare_spam")
 
         self._cooldown_frame_remaining = dt
         self._update_movement(dt)
@@ -435,6 +457,9 @@ class Gameplay:
             game_map.super_pacgums)
         for gum in contacts.pacgums:
             gum.eaten = True
+            if self.play_sound:
+                self.play_sound(self._sound_random.choice(
+                    ("eat_dot1", "eat_dot2", "eat_dot3", "eat_dot4")))
             self.add_points(self.points_per_pacgum)
             self.pacgums_eaten += 1
             if (self.pacgums_eaten % self.POWER_UP_INTERVAL == 0
@@ -447,15 +472,24 @@ class Gameplay:
                     <= self.collisions.GHOST_DISTANCE):
                 self.activate_power_up(item.name)
                 game_map.power_ups.remove(item)
+                if self.play_sound:
+                    sound = {"star": "star", "coffee": "eat_cafe",
+                             "behelit": "behelit", "bold": "bolt"}.get(
+                                 item.name, "eat_powerup")
+                    self.play_sound(sound)
         for sup in contacts.super_pacgums:
             sup.eaten = True
+            if self.play_sound:
+                self.play_sound("eat_donut")
             self.add_points(self.points_per_super_pacgum)
+            self._ghost_score_multiplier = 1
+            self._donut_time_left = self.FRIGHTENED_TIME * (
+                self.GOLD_DONUT_EFFECT if self.gold_donut_active else 1.0)
             game_map.pacman.size = 1.2
             for ghost in game_map.ghosts:
                 if ghost.state not in (State.EATEN, State.WAITING):
                     ghost.state = State.FRIGHTENED
-                    ghost.frightened_time = self.FRIGHTENED_TIME * (
-                        self.GOLD_DONUT_EFFECT if self.gold_donut_active else 1.0)
+                    ghost.frightened_time = self._donut_time_left
         fruits = ([game_map.fruit] if game_map.fruit is not None else [])
         fruits.extend(game_map.extra_fruits)
         for fruit in fruits:
@@ -464,6 +498,8 @@ class Gameplay:
                               game_map.pacman.position[1] - fruit.map_pos[1])
                     <= self.collisions.GHOST_DISTANCE):
                 fruit.eaten = True
+                if self.play_sound:
+                    self.play_sound("eat_donut")
                 self.collect_fruit(fruit.value)
                 if fruit is game_map.fruit:
                     game_map.fruit = None
@@ -495,13 +531,25 @@ class Gameplay:
 
         for ghost in contacts.ghosts:
             if ghost.state == State.FRIGHTENED:
+                if self.play_sound:
+                    self.play_sound("eat_ghost")
                 ghost.start_respawn(self.RESPAWN_TIME)
-                self.add_points(self.points_per_ghost)
+                if self.play_sound:
+                    self.play_sound("ghost_die")
+                self.add_points(self.points_per_ghost
+                                * self._ghost_score_multiplier)
+                self._ghost_score_multiplier = min(
+                    self._ghost_score_multiplier * 2,
+                    self.MAX_GHOST_MULTIPLIER)
             elif ghost.state in (State.EATEN, State.WAITING):
                 continue
             elif self.power_up == "star":
                 continue
             else:
+                if self.play_sound:
+                    if ghost.state == State.NIGHTMARE:
+                        self.play_sound("nightmare_attack")
+                    self.play_sound("pacman_die")
                 self.lose_life()
                 self.life_lost = True
         return bool(contacts.pacgums or contacts.super_pacgums) \
