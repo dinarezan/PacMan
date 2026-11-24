@@ -406,6 +406,7 @@ class Funky(Ghost):
         if self.jumping:
             self._jump_over(dt, self.target)
         else:
+            self._rand_target = self._generate_random_target()
             self.hunt_target(dt, self._path_to_target, pacman.cell)
 
     def behaviour(self, dt: float, pacman: PacMan):
