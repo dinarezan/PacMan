@@ -88,7 +88,7 @@ class PacMan:
 
 class PacGum:
     def __init__(self, position: tuple[int, int], points: int):
-        self.position: tuple[int, int] = position
+        self.position: tuple[float, float] = position
         self.eaten: bool = False
         self.value: int = points
 
@@ -106,13 +106,23 @@ class PacGumFactory:
             pacman_pos: tuple[int, int],
             points: int) -> list[PacGum]:
         width, height = len(maze[0]), len(maze)
+        corners = [(0, 0), (width - 1, 0),
+                   (0, height - 1), (width - 1, height - 1)]
         indices = []
         for i in range(width):
             for j in range(height):
                 if maze[j][i] != 15 and (i, j) != pacman_pos:
                     indices.append((i, j))
-        corners = [(0, 0), (width - 1, 0),
-                   (0, height - 1), (width - 1, height - 1)]
+                if maze[j][i] & 1 == 0:
+                    indices.append((i, j - 0.5))
+                if (maze[j][i] >> 1) & 1 == 0:
+                    indices.append((i + 0.5, j))
+                if (maze[j][i] >> 2) & 1 == 0:
+                    indices.append((i, j + 0.5))
+                if (maze[j][i] >> 3) & 1 == 0:
+                    indices.append((i - 0.5, j))
+
+        indices = list(set(indices))
         for corner in corners:
             indices.remove(corner)
         random.shuffle(indices)
