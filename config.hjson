@@ -11,7 +11,8 @@
 				}
 			],
 			"max_time": 100,
-			"seed": 42
+			"seed": 42,
+			"theme": "city"
 		},
 		{
 			"width": 10,
@@ -63,6 +64,7 @@
 			],
 			"max_time": 120,
 			"seed": 0
+			"theme": "original"
 		}
 	],
 	"lives": 3,
