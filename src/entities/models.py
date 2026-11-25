@@ -1,5 +1,4 @@
 from pydantic import BaseModel, model_validator, Field
-from enum import Enum
 from typing import Self
 
 GHOST_TYPES = ("blinky", "pinky", "punky", "clyde", "funky", "glitchy")

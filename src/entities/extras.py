@@ -67,10 +67,11 @@ class Fruit(Ghost):
         positions = [(x, y) for y, row in enumerate(maze)
                      for x, cell in enumerate(row) if cell != 15]
         if not positions:
-            raise ValueError("Cannot place a fruit in a maze without open cells")
+            raise ValueError("Cannot place a fruit in a maze without "
+                             "open cells")
         return random.choice(positions)
 
-    def behaviour(self, dt: float, pacman: PacMan | None = None) -> None:
+    def behaviour(self, dt: float, _: PacMan | None = None) -> None:
         self._random_movement(dt)
 
     def _generate_random_target(self) -> tuple[int, int]:

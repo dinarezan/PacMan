@@ -32,7 +32,8 @@ def save_highscore(path: str, name: str, score: int) -> None:
     highscores.players.sort(key=lambda p: p.score, reverse=True)
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    file_path.write_text(highscores.model_dump_json(indent=2), encoding="utf-8")
+    file_path.write_text(highscores.model_dump_json(indent=2),
+                         encoding="utf-8")
 
 
 def load_config(path: str) -> Game:

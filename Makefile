@@ -3,7 +3,8 @@ VENV = .venv
 MYPY_FLAGS = --warn-return-any --warn-unused-ignores \
 	--ignore-missing-imports --disallow-untyped-defs \
 	--check-untyped-defs
-EXCLUDES = --exclude '^$(VENV)/'
+MYPY_EXCLUDES = --exclude '^$(VENV)/'
+FLAKE8_EXCLUDES = --extend-exclude $(VENV),mazegenerator.py
 
 
 install:
@@ -24,11 +25,11 @@ fclean: clean
 	rm -rf uv.lock
 
 lint:
-	uv run flake8 . --exclude $(VENV)
-	uv run mypy . $(EXCLUDES) $(MYPY_FLAGS)
+	uv run flake8 . $(FLAKE8_EXCLUDES)
+	uv run mypy . $(MYPY_EXCLUDES) $(MYPY_FLAGS)
 
 lint-strict:
-	uv run flake8 . --exclude $(VENV)
-	uv run mypy . $(EXCLUDES) --strict
+	uv run flake8 . $(FLAKE8_EXCLUDES)
+	uv run mypy . $(MYPY_EXCLUDES) --strict
 
 .PHONY: install run debug clean fclean lint lint-strict

@@ -3,8 +3,6 @@ from .pacman import PacMan, PacGum, SuperPacGum, PacGumFactory
 from .ghost import Ghost, GhostFactory
 from .extras import Fruit, PowerUp
 from .models import BaseGhost
-from numpy.typing import NDArray
-import numpy as np
 
 
 class Map(MazeGenerator):
@@ -42,5 +40,4 @@ class Map(MazeGenerator):
         x, y = tuple(el // 2 for el in size)
         if size[0] % 2 == 0:
             x = size[0] // 2 - 1
-        return PacMan((x, y))
-
+        return PacMan((float(x), float(y)))

@@ -9,8 +9,8 @@ class PacMan:
         self.spawn_pos = pos
         self.position: tuple[float, float] = pos
         self.cell: tuple[int, int] = (int(pos[0]), int(pos[1]))
-        self.wanted: int | None = None #direction
-        self.heading: int | None = None #direction
+        self.wanted: int | None = None  # direction
+        self.heading: int | None = None  # direction
         self._next: tuple[int, int] | None = None
         self.speed: float = 1.8
         self.size: float = 1.0
@@ -48,7 +48,11 @@ class PacMan:
         if self.timer >= duration:
             self.power_off()
 
-        if self._next and self.wanted == (self.heading + 2) % 4: #wanted direction is opposite
+        if (
+            self._next and self.heading
+            and self.wanted == (self.heading + 2) % 4
+           ):
+            # wanted direction is opposite
             self.cell, self._next = self._next, self.cell
             self.heading = self.wanted
 
@@ -73,21 +77,23 @@ class PacMan:
                 self._next = (x + dx, y + dy)
 
             nx, ny = self._next
-            dx, dy = nx - self.position[0], ny - self.position[1]
+            tx, ty = nx - self.position[0], ny - self.position[1]
             dist = hypot(dx, dy)
-            if dist <= remaining: #cell is reached, set him back on exact centre
+            if dist <= remaining:
+                # cell is reached, set him back on exact centre
                 self.position = (float(nx), float(ny))
                 self.cell = self._next
                 self._next = None
                 remaining -= dist
-            else: #move towards the cell
+            else:  # move towards the cell
                 f = remaining / dist
-                self.position = (self.position[0] + dx * f, self.position[1] + dy * f)
+                self.position = (self.position[0] + tx * f,
+                                 self.position[1] + ty * f)
                 remaining = 0
 
 
 class PacGum:
-    def __init__(self, position: tuple[int, int], points: int):
+    def __init__(self, position: tuple[int | float, int | float], points: int):
         self.position: tuple[float, float] = position
         self.eaten: bool = False
         self.value: int = points
@@ -103,12 +109,12 @@ class PacGumFactory:
     def create(
             maze: list[list[int]],
             number: int,
-            pacman_pos: tuple[int, int],
+            pacman_pos: tuple[float, float],
             points: int) -> list[PacGum]:
         width, height = len(maze[0]), len(maze)
         corners = [(0, 0), (width - 1, 0),
                    (0, height - 1), (width - 1, height - 1)]
-        indices = []
+        indices: list[tuple[int | float, int | float]] = []
         for i in range(width):
             for j in range(height):
                 if maze[j][i] != 15 and (i, j) != pacman_pos:
