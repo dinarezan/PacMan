@@ -14,6 +14,7 @@ class Map(MazeGenerator):
                  seed: int,
                  ghosts: list[BaseGhost],
                  max_time: int,
+                 theme: str,
                  points_per_pacgum: int,
                  points_per_super_pacgum: int,
                  points_per_ghost: int
@@ -35,6 +36,7 @@ class Map(MazeGenerator):
         self.extra_fruits: list[Fruit] = []
         self.power_ups: list[PowerUp] = []
         self.max_time: int = max_time
+        self.theme: str = theme
 
     def _position_pacman(self, size: tuple[int, int]) -> PacMan:
         x, y = tuple(el // 2 for el in size)

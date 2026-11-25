@@ -102,6 +102,7 @@ class Menu:
         text_hover: tuple[int, int, int] = (170, 220, 255),
         active_offset: tuple[int, int] = (0, 1),
         title_case: bool = True,
+        play_sound: Callable[[str], None] | None = None,
     ) -> None:
         if len(items) != len(actions):
             raise ValueError(
@@ -119,6 +120,7 @@ class Menu:
         self.text_hover = text_hover
         self.active_offset = active_offset
         self.title_case = title_case
+        self.play_sound = play_sound
         self.buttons: list[Button] = []
         self.selected = 0
 
@@ -210,6 +212,8 @@ class Menu:
             button = self.buttons[self.selected]
             if button.is_active:
                 button.release()
+                if self.play_sound:
+                    self.play_sound("menu_click")
                 button.action()     # ! Kill Mypy bitte
                 return True
             return False
@@ -219,6 +223,8 @@ class Menu:
 
         for button in self.buttons:
             if button.handle_event(event):
+                if self.play_sound:
+                    self.play_sound("menu_click")
                 button.action()
                 return True
         return False
@@ -239,6 +245,8 @@ class Menu:
         """
         for index, button in enumerate(self.buttons):
             if button.rect.collidepoint(mouse_pos):
+                if index != self.selected and self.play_sound:
+                    self.play_sound("menu_select")
                 self.selected = index
                 self._sync_focus()
                 return True
@@ -267,7 +275,10 @@ class Menu:
     def _move(self, step: int) -> None:
         """Move the selection by `step` positions, with wrap-around."""
         if self.buttons:
+            previous = self.selected
             self.selected = (self.selected + step) % len(self.buttons)
+            if self.selected != previous and self.play_sound:
+                self.play_sound("menu_select")
             self._sync_focus()
 
     def _sync_focus(self) -> None:

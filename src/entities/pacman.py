@@ -18,7 +18,7 @@ class PacMan:
         self.power_up_factor: float = 1
         self.timer: float = 0.0
         self.invencibility: bool = False
-        self.active_power_up: str | None
+        self.active_power_up: str | None = None
 
     def power_up(self, factor: float) -> None:
         self.powered_up = True

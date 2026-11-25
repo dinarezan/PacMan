@@ -34,6 +34,11 @@ GHOST_COLOR_ADJUSTMENTS: dict[Colors, tuple[int, int, int]] = {
     Colors.SHADOW: (0, 0, -100),
 }
 
+PACMAN_COLOR_ADJUSTMENTS: dict[str, tuple[int, int, int]] = {
+    "bold": (0, 30, 10),
+    "horror": (25, 0, 0),
+}
+
 
 class States(Enum):
     START = 'start'

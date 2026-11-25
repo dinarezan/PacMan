@@ -4,7 +4,8 @@ import colorsys
 import random
 from math import hypot, sin, tau
 from typing import Any
-from src.graphics.graphic_data import Colors, GHOST_COLOR_ADJUSTMENTS
+from src.graphics.graphic_data import (Colors, GHOST_COLOR_ADJUSTMENTS,
+                                      PACMAN_COLOR_ADJUSTMENTS)
 from src.graphics.sprite_utils import change_color, get_tinted_image, tint_surface, resize
 from src.entities.map import Map
 from src.graphics.animation import SpriteAnimation
@@ -159,7 +160,7 @@ class RenderMap:
                                      pygame.Surface] = {}
         self._shadows: dict[tuple[int, int], pygame.Surface] = {}
         self._pacman_anim = SpriteAnimation(list(self.PACMAN_FRAMES))
-        self._pacman_images: dict[tuple[str, int | None],
+        self._pacman_images: dict[tuple[str, int | None, float, str | None],
                                   pygame.Surface] = {}
         self._white_pacman_images: dict[pygame.Surface, pygame.Surface] = {}
         self._pacman_last_look = 4
@@ -193,9 +194,10 @@ class RenderMap:
         automatically by `draw` and `start_reveal` if needed; To use along
         loading screen to improve performance.
         """
+        theme = self.map.theme
         for value in {v for row in self.map.maze for v in row}:
             image = self.assets.get_image(
-                f"{self.MAP_FOLDER}/{value}", (self.tile, self.tile),
+                f"{self.MAP_FOLDER}/{theme}/{value}", (self.tile, self.tile),
                 group="map")
             self._tiles_color[value] = image
             self._tiles_gray[value] = tint_surface(image, saturation=0.0)
@@ -552,12 +554,12 @@ class RenderMap:
                     afterimage.set_alpha(
                         round(120 * (index + 1) / len(self.dash_trail)))
                     self._blit(screen, afterimage, position)
-                glow = pygame.Surface((self.tile, self.tile), pygame.SRCALPHA)
+                glow = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
                 pygame.draw.ellipse(glow, (240, 255, 255, 180),
                                     glow.get_rect(), width=max(2, self.tile // 20))
                 self._blit(screen, glow, pacman.position)
             elif (power_up and power_up == "star") or pacman.invencibility:
-                glow = pygame.Surface((self.tile, self.tile), pygame.SRCALPHA)
+                glow = pygame.Surface(sprite.get_size(), pygame.SRCALPHA)
                 pygame.draw.ellipse(glow, (240, 255, 255, 180),
                                     glow.get_rect(), width=max(2, self.tile // 20))
                 self._blit(screen, glow, pacman.position)
@@ -665,14 +667,23 @@ class RenderMap:
         name = self._pacman_anim.frame if self.game_init else \
             self.PACMAN_SPRITE
         if direction is not None:
-            key = (name, direction)
             self._pacman_last_look = direction
         else:
-            key = (name, self._pacman_last_look)
             direction = self._pacman_last_look
+        size = getattr(pacman, "size", 1.0)
+        power_up = getattr(pacman, "active_power_up", None)
+        adjustment = PACMAN_COLOR_ADJUSTMENTS.get(power_up)
+        key = (name, direction, size, power_up if adjustment else None)
         image = self._pacman_images.get(key)
         if image is None:
             image = self._sprite(name)
+            if adjustment:
+                hue, saturation, luminosity = adjustment
+                image = tint_surface(image, hue=hue,
+                                     saturation=1.0 + saturation / 100,
+                                     luminosity=1.0 + luminosity / 100)
+            if size != 1.0:
+                image = resize(image, size)
             angle = self.PACMAN_ROTATION.get(direction, 0)
             if angle and angle == 180:
                 image = pygame.transform.flip(image, flip_x=True, flip_y=False)
