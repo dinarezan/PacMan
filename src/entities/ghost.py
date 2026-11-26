@@ -262,7 +262,7 @@ class Punky(Ghost):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
-        self._chase_radius: int = chase_rad
+        self._chase_radius: float = chase_rad
         self.color: Colors = Colors.MAGENTA
 
     def _chase(self, dt: float, pacman_pos: tuple[int, int]) -> None:
@@ -352,7 +352,7 @@ class Funky(Ghost):
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self.color: Colors = Colors.GREEN
-        self._chase_radius: int = chase_rad
+        self._chase_radius: float = chase_rad
 
     def _check_if_wall_between(self, pacman: PacMan) -> bool:
         """Checks if path to pacman is a straight line with no wall,
@@ -437,7 +437,7 @@ class Glitchy(Ghost):
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
         self.color: Colors = Colors.PEACH
-        self._chase_radius: int = chase_rad
+        self._chase_radius: float = chase_rad
         self.state_duration: float = 10.0
         self.can_teleport: bool = True
         random.seed()
