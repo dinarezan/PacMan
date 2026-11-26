@@ -227,7 +227,7 @@ class Blinky(Ghost):
     10 seconds. When there are less pacgums switches to chase only and
     accelerates."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9):
+                 points: int, _: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
@@ -258,7 +258,7 @@ class Punky(Ghost):
     """Moves randomly until finds himself in the chase radius from pacman.
     Then speeds up and hunts him with BFS."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9, chase_rad: int = 5):
+                 points: int, chase_rad: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
@@ -295,7 +295,7 @@ class Pinky(Ghost):
     """Tries to intercept pacman by coming in front of him.
      If pacman is not moving, he hunts him by following BFS."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9):
+                 points: int, _: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
@@ -321,7 +321,7 @@ class Clyde(Ghost):
     """Goes towards pacman but runs to corner when he's close to him.
      If he is both close to corner and to pacman, hunts pacman."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9):
+                 points: int, _: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.CHASE
         self._default_state: State = State.CHASE
@@ -347,7 +347,7 @@ class Funky(Ghost):
     """When in range of chase radius starts hunting pacman by BFS.
      When closer than 2, can jump over the wall in any direction."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9, chase_rad: int = 5):
+                 points: int, chase_rad: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
@@ -432,7 +432,7 @@ class Glitchy(Ghost):
      He can teleport every 10 seconds as long as he's in the chase radius.
      Otherwise, moves randomly."""
     def __init__(self, pos: tuple[int, int], maze: list[list[int]],
-                 points: int, speed: float = 0.9, chase_rad: int = 5):
+                 points: int, chase_rad: float = 4.0, speed: float = 0.9):
         super().__init__(pos, maze, points, speed)
         self.state: State = State.SCATTER
         self._default_state: State = State.SCATTER
@@ -440,6 +440,7 @@ class Glitchy(Ghost):
         self._chase_radius: int = chase_rad
         self.state_duration: float = 10.0
         self.can_teleport: bool = True
+        random.seed()
 
     def _chase(self, dt: float, pacman: PacMan) -> None:
         if self.can_teleport:
@@ -453,6 +454,7 @@ class Glitchy(Ghost):
             self.map_pos = (float(self.position[0]), float(self.position[1]))
             self._next = None
             self.eyes = 4
+            # print(f"Glitchy teleported at {self.position}")
             self.timer = 0.0
         else:
             self.hunt_target(dt, self._path_to_target, pacman.cell)
@@ -465,13 +467,17 @@ class Glitchy(Ghost):
            ):
             self.state = State.CHASE
             self.timer = 0.0
-            self.can_teleport = True
+            # print("Glitchy is now chasing you. "
+            #       f"Distance: {round(dist_to_pacman, 2)}")
         elif (dist_to_pacman > self._chase_radius
               and self.state == State.CHASE):
             self.state = State.SCATTER
+            self._rand_target = self._generate_random_target()
+            # print("Glitchy now moves randomly.")
         else:
-            self.timer += dt
-            self.can_teleport = self.timer >= self.state_duration
+            pass
+        self.timer += dt
+        self.can_teleport = self.timer >= self.state_duration
 
         if self.state == State.CHASE:
             self._chase(dt, pacman)
@@ -495,8 +501,12 @@ class GhostFactory:
         for g in base_ghosts:
             name = g["name"]
             pos = g["position"]
+            chase_rad = g["chase_radius"]
             ghost_cls = self.registry.get(name)
             if ghost_cls is None:
                 raise ValueError(f"Unknown ghost type: {name}")
-            ghosts.append(ghost_cls(pos, maze, points))
+            if chase_rad:
+                ghosts.append(ghost_cls(pos, maze, points, chase_rad))
+            else:
+                ghosts.append(ghost_cls(pos, maze, points))
         return ghosts

@@ -1,12 +1,13 @@
 {
 	"levels": [
+		# Level 1: meet blinky
 		{
-			"width": 10,
-			"height": 10,
-			"pacgum": 250,
+			"width": 8,
+			"height": 8,
+			"pacgum": 32,
 			"ghosts": [
 				{
-					"name": "glitchy",
+					"name": "blinky",
 					"position": [0, 0]
 				}
 			],
@@ -14,10 +15,41 @@
 			"seed": 42,
 			"theme": "city"
 		},
+		# Level 2: meet punky
+		{
+			"width": 8,
+			"height": 8,
+			"pacgum": 32,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_radius": 4
+				}
+			],
+			"max_time": 100,
+			"theme": "city"
+		},
+		# Level 3: meet glitchy
+		{
+			"width": 8,
+			"height": 8,
+			"pacgum": 32,
+			"ghosts": [
+				{
+					"name": "glitchy",
+					"position": [0, 0],
+					"chase_radius": 4
+				}
+			],
+			"max_time": 100,
+			"theme": "city"
+		},
+		# Level 4: blinky and pinky are trying to surround you
 		{
 			"width": 10,
 			"height": 10,
-			"pacgum": 200,
+			"pacgum": 50,
 			"ghosts": [
 				{
 					"name": "blinky",
@@ -26,24 +58,35 @@
 				{
 					"name": "pinky",
 					"position": [9, 9]
+				}
+			],
+			"max_time": 120,
+			"theme": "city"
+		},
+		# Level 5: punky is hunting you, but clyde is insecure
+		{
+			"width": 10,
+			"height": 10,
+			"pacgum": 50,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_radius": 4
 				},
 				{
 					"name": "clyde",
-					"position": [9, 0]
-				},
-				{
-					"name": "punky",
-					"position": [0, 9]
+					"position": [9, 9]
 				}
-				
 			],
 			"max_time": 120,
-			"seed": 0
+			"theme": "city"
 		},
+		# Level 6: can you handle 4 ghosts?
 		{
-			"width": 20,
-			"height": 20,
-			"pacgum": 42,
+			"width": 12,
+			"height": 12,
+			"pacgum": 100,
 			"ghosts": [
 				{
 					"name": "blinky",
@@ -51,21 +94,161 @@
 				},
 				{
 					"name": "pinky",
-					"position": [19, 19]
-				},
-				{
-					"name": "pinky",
-					"position": [19, 0]
+					"position": [11, 11]
 				},
 				{
 					"name": "blinky",
-					"position": [0, 19]
+					"position": [11, 0]
+				},
+				{
+					"name": "clyde",
+					"position": [0, 11]
 				}
 			],
-			"max_time": 120,
-			"seed": 0
-			"theme": "original"
-		}
+			"max_time": 160,
+			"theme": "city"
+		},
+		# Level 7: you have to run faster!
+		{
+			"width": 12,
+			"height": 12,
+			"pacgum": 100,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_raius": 4
+				},
+				{
+					"name": "pinky",
+					"position": [11, 11]
+				},
+				{
+					"name": "blinky",
+					"position": [11, 0]
+				},
+				{
+					"name": "clyde",
+					"position": [0, 11]
+				}
+			],
+			"max_time": 160,
+			"theme": "city"
+		},
+		# Level 8: did you know that ghosts go through the walls? Funky right?
+		{
+			"width": 12,
+			"height": 12,
+			"pacgum": 100,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_radius": 4
+				},
+				{
+					"name": "pinky",
+					"position": [11, 11]
+				},
+				{
+					"name": "funky",
+					"position": [11, 0],
+					"chase_radius": 4
+				},
+				{
+					"name": "clyde",
+					"position": [0, 11]
+				}
+			],
+			"max_time": 160,
+			"theme": "city"
+		},
+		# Level 8: we have some glitches...
+		{
+			"width": 12,
+			"height": 12,
+			"pacgum": 100,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_radius": 4
+				},
+				{
+					"name": "pinky",
+					"position": [11, 11]
+				},
+				{
+					"name": "glitchy",
+					"position": [11, 0],
+					"chase_radius": 4
+				},
+				{
+					"name": "clyde",
+					"position": [0, 11]
+				}
+
+			],
+			"max_time": 160,
+			"theme": "city"
+		},
+		# Level 9: OMG, they are all after me!!
+		{
+			"width": 14,
+			"height": 14,
+			"pacgum": 100,
+			"ghosts": [
+				{
+					"name": "blinky",
+					"position": [0, 0],
+				},
+				{
+					"name": "pinky",
+					"position": [13, 13]
+				},
+				{
+					"name": "glitchy",
+					"position": [13, 0],
+					"chase_radius": 4
+				},
+				{
+					"name": "funky",
+					"position": [0, 13],
+					"chase_radius": 4
+				}
+			],
+			"max_time": 200,
+			"theme": "city"
+		},
+		# Level 10: Are you serious??
+				{
+			"width": 14,
+			"height": 14,
+			"pacgum": 100,
+			"ghosts": [
+				{
+					"name": "punky",
+					"position": [0, 0],
+					"chase_radius": 5
+				},
+				{
+					"name": "pinky",
+					"position": [13, 13]
+				},
+				{
+					"name": "glitchy",
+					"position": [13, 0],
+					"chase_radius": 5
+				},
+				{
+					"name": "funky",
+					"position": [0, 13],
+					"chase_radius": 5
+				}
+			],
+			"max_time": 200,
+			"theme": "city"
+		},
 	],
 	"lives": 3,
 	"points_per_pacgum": 10,

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator, Field
-from typing import Self
+from typing import Self, Optional
 
 GHOST_TYPES = ("blinky", "pinky", "punky", "clyde", "funky", "glitchy")
 
@@ -7,6 +7,7 @@ GHOST_TYPES = ("blinky", "pinky", "punky", "clyde", "funky", "glitchy")
 class BaseGhost(BaseModel):
     name: str
     position: tuple[int, int]
+    chase_radius: Optional[float] = None
 
     @model_validator(mode='after')
     def name_validator(self) -> Self:

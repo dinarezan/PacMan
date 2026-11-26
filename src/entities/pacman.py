@@ -78,7 +78,7 @@ class PacMan:
 
             nx, ny = self._next
             tx, ty = nx - self.position[0], ny - self.position[1]
-            dist = hypot(dx, dy)
+            dist = hypot(tx, ty)
             if dist <= remaining:
                 # cell is reached, set him back on exact centre
                 self.position = (float(nx), float(ny))
